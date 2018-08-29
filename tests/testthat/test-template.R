@@ -3,18 +3,18 @@
 # 1. Rename this file based on the content you are testing using
 #    `test-functionName.R` format so that your can directly call `moduleCoverage`
 #    to calculate module coverage information.
-#    `functionName` is a function's name in your module (e.g., `LandWebOutputEvent1`).
-# 2. Copy this file to the tests folder (i.e., `C:/Users/yonluo/Documents/GitHub/LandWeb/LandWebOutput/tests/testthat`).
+#    `functionName` is a function's name in your module (e.g., `LandWeb_outputEvent1`).
+# 2. Copy this file to the tests folder (i.e., `~/GitHub/LandWeb/LandWeb_output/tests/testthat`).
 
 # 3. Modify the test description based on the content you are testing:
 test_that("test Event1 and Event2.", {
-  module <- list("LandWebOutput")
+  module <- list("LandWeb_output")
   path <- list(modulePath = "C:/Users/yonluo/Documents/GitHub/LandWeb",
                outputPath = file.path(tempdir(), "outputs"))
   parameters <- list(
     #.progress = list(type = "graphical", interval = 1),
     .globals = list(verbose = FALSE),
-    LandWebOutput = list(.saveInitialTime = NA)
+    LandWeb_output = list(.saveInitialTime = NA)
   )
   times <- list(start = 0, end = 1)
 
@@ -55,10 +55,10 @@ test_that("test Event1 and Event2.", {
   #    Use this approach when using any function within the simList object
   #    (i.e., one version as a direct call, and one with `simList` object prepended).
 
-  if (exists("LandWebOutputEvent1", envir = .GlobalEnv)) {
-    simOutput <- LandWebOutputEvent1(mySim)
+  if (exists("LandWeb_outputEvent1", envir = .GlobalEnv)) {
+    simOutput <- LandWeb_outputEvent1(mySim)
   } else {
-    simOutput <- mySim$LandWebOutputEvent1(mySim)
+    simOutput <- mySim$LandWeb_outputEvent1(mySim)
   }
 
   expectedOutputEvent1Test1 <- " this is test for event 1. " # please define your expection of your output
@@ -66,10 +66,10 @@ test_that("test Event1 and Event2.", {
   expect_equal(simOutput$event1Test1, expectedOutputEvent1Test1) # or other expect function in testthat package.
   expect_equal(simOutput$event1Test2, as.numeric(999)) # or other expect function in testthat package.
 
-  if (exists("LandWebOutputEvent2", envir = .GlobalEnv)) {
-    simOutput <- LandWebOutputEvent2(mySim)
+  if (exists("LandWeb_outputEvent2", envir = .GlobalEnv)) {
+    simOutput <- LandWeb_outputEvent2(mySim)
   } else {
-    simOutput <- mySim$LandWebOutputEvent2(mySim)
+    simOutput <- mySim$LandWeb_outputEvent2(mySim)
   }
 
   expectedOutputEvent2Test1 <- " this is test for event 2. " # please define your expection of your output

@@ -1,7 +1,7 @@
 # Everything in this file gets sourced during simInit, and all functions and objects
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
-  name = "LandWebOutput",
+  name = "LandWeb_output",
   description = "Summarize the output for the LandWeb natural range of variation.",
   keywords = c("LandWeb", "NRV"),
   authors = person("Yong", "Luo", email = "yong.luo@canada.ca", role = c("aut", "cre")),
@@ -11,7 +11,7 @@ defineModule(sim, list(
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "LandWebOutput.Rmd"),
+  documentation = list("README.txt", "LandWeb_output.Rmd"),
   reqdPkgs = list("data.table", "raster", "SpaDES.tools"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
@@ -42,16 +42,16 @@ defineModule(sim, list(
   )
     ))
 
-doEvent.LandWebOutput <- function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
     #sim <- Init(sim)
-    sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWebOutput", "allEvents",
+    sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   }   else if (time(sim) >= sim$summaryPeriod[1] & eventType == "allEvents" &
                time(sim) <= sim$summaryPeriod[2]) {
     sim <- AllEvents(sim)
     sim <- scheduleEvent(sim,  time(sim) + P(sim)$summaryInterval,
-                         "LandWebOutput", "allEvents", eventPriority = 7.5)
+                         "LandWeb_output", "allEvents", eventPriority = 7.5)
   } else {
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
