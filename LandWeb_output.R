@@ -45,10 +45,11 @@ defineModule(sim, list(
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
     #sim <- Init(sim)
+    sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
-  }   else if (time(sim) >= sim$summaryPeriod[1] & eventType == "allEvents" &
-               time(sim) <= sim$summaryPeriod[2]) {
+  } else if (time(sim) >= sim$summaryPeriod[1] & eventType == "allEvents" &
+             time(sim) <= sim$summaryPeriod[2]) {
     sim <- AllEvents(sim)
     sim <- scheduleEvent(sim,  time(sim) + P(sim)$summaryInterval,
                          "LandWeb_output", "allEvents", eventPriority = 7.5)
