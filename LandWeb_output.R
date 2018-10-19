@@ -2,7 +2,7 @@
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
   name = "LandWeb_output",
-  description = "Summarize the output for the LandWeb natural range of variation.",
+  description = "Summarize the output for the LandWeb natural range of variation (NRV).",
   keywords = c("LandWeb", "NRV"),
   authors = person("Yong", "Luo", email = "yong.luo@canada.ca", role = c("aut", "cre")),
   childModules = character(0),
