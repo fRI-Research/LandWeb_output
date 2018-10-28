@@ -40,7 +40,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput(objectName = "vegTypeMap", objectClass = "Raster", desc = NA)
   )
-    ))
+))
 
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
@@ -69,8 +69,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 
 ### template for your event1
 AllEvents <- function(sim) {
-  sim$vegTypeMap <- sim$vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
-                                                     sim$vegLeadingPercent)
+  sim$vegTypeMap <- sim$vegTypeMapGenerator(sim$species, sim$cohortData,
+                                            sim$pixelGroupMap, sim$vegLeadingPercent)
 
     # vegetation type summary
   # if(is.null(sim$LandMine$vegTypeMapGenerator)) { # This may be produced in a specific fire module
@@ -156,7 +156,7 @@ AllEvents <- function(sim) {
       shortcohortdata[speciesGroup == "PICE_GLA" & speciesPercentage > vegLeadingPercent,
                       speciesLeading := 4]# spruce leading
       shortcohortdata[is.na(speciesLeading), speciesLeading := 0]
-      shortcohortdata[,speciesLeading := max(speciesLeading, na.rm = TRUE), by = pixelGroup]
+      shortcohortdata[, speciesLeading := max(speciesLeading, na.rm = TRUE), by = pixelGroup]
       shortcohortdata <- unique(shortcohortdata[, .(pixelGroup, speciesLeading)], by = "pixelGroup")
       shortcohortdata[speciesLeading == 0, speciesLeading := 5] # 5 is mixed forests
       attritable <- data.table(ID = sort(unique(shortcohortdata$speciesLeading)))
@@ -173,7 +173,7 @@ AllEvents <- function(sim) {
     }
   }
 
-  sim$vegLeadingPercent <- 0.80
+  sim$vegLeadingPercent <- 0.80 ## TODO: this is hardcoded here; also not declared as an output!
   if (!suppliedElsewhere("cohortData", sim))
     sim$cohortData <- data.table()
   if (!suppliedElsewhere("pixelGroupMap", sim))
