@@ -40,7 +40,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput(objectName = "vegTypeMap", objectClass = "Raster", desc = NA)
   )
-    ))
+))
 
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
@@ -156,7 +156,7 @@ AllEvents <- function(sim) {
       shortcohortdata[speciesGroup == "PICE_GLA" & speciesProportion > vegLeadingProportion,
                       speciesLeading := 4]# spruce leading
       shortcohortdata[is.na(speciesLeading), speciesLeading := 0]
-      shortcohortdata[,speciesLeading := max(speciesLeading, na.rm = TRUE), by = pixelGroup]
+      shortcohortdata[, speciesLeading := max(speciesLeading, na.rm = TRUE), by = pixelGroup]
       shortcohortdata <- unique(shortcohortdata[, .(pixelGroup, speciesLeading)], by = "pixelGroup")
       shortcohortdata[speciesLeading == 0, speciesLeading := 5] # 5 is mixed forests
       attritable <- data.table(ID = sort(unique(shortcohortdata$speciesLeading)))
