@@ -173,7 +173,9 @@ AllEvents <- function(sim) {
     }
   }
 
-  sim$vegLeadingProportion <- 0.80
+  if (!suppliedElsewhere("vegLeadingProportion", sim)) {
+    sim$vegLeadingProportion <- 0.8
+  }
   if (!suppliedElsewhere("cohortData", sim))
     sim$cohortData <- data.table()
   if (!suppliedElsewhere("pixelGroupMap", sim))
