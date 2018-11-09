@@ -209,7 +209,6 @@ AllEvents <- function(sim) {
       vegTypeMap
     }
   }
-  
   if (!suppliedElsewhere("vegLeadingProportion", sim)) {
     sim$vegLeadingProportion <- 0.8
   }
