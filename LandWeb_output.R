@@ -40,13 +40,18 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput(objectName = "vegTypeMap", objectClass = "Raster", desc = NA)
   )
-))
+    ))
 
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
+    
+    sim <- scheduleEvent(sim, 0, "LandWeb_output", "initialConditions", eventPriority = 1)
     sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
+  } else if (eventType == "initialConditions") {
+    plotVTM(sim$specieslayers, vegLeadingProportion = sim$vegLeadingProportion, 
+            speciesEquivalency = sim$speciesEquivalency)
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
         time(sim) <= sim$summaryPeriod[2]) {
@@ -67,12 +72,44 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 
+plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speciesEquivalency) {
+  if (is.null(vtm)) {
+    if (!is.null(speciesStack))
+      vtm <- Cache(pemisc::makeVegTypeMap, speciesStack, vegLeadingProportion)
+    else 
+      stop("plotVTM requires either a speciesStack of percent cover or a vegetation type map (vtm)")
+  }
+  
+  vtmTypes <- factorValues(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
+  setColors(vtm, vtmTypes) <- 
+    equivalentName(vtmTypes, df = speciesEquivalency, "cols")
+  #facVals <- factorValues(vtm, vtm[], att = "Species")[[1]]
+  facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species")
+  df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
+  df <- df[!is.na(df$species)]
+  df$species <- equivalentName(df$species, speciesEquivalency, "shortNames")
+  df$cols <- equivalentName(df$species, speciesEquivalency, "cols")
+  
+  cols2 <- df$cols
+  names(cols2) <- df$species
+  initialLeadingPlot <- ggplot(data = df, aes(species, fill = species)) +
+    scale_fill_manual(values=cols2) +
+    geom_bar(position = 'stack') +
+    #labs(x = "Year", y = "Biomass by species") +
+    theme(legend.text = element_text(size = 6), legend.title = element_blank(),
+          axis.text = element_text(size = 6))
+  
+  
+  Plot(initialLeadingPlot, title = c("Initial leading types"))
+  Plot(vtm, title = "Initial leading types")
+  
+}
 ### template for your event1
 AllEvents <- function(sim) {
   sim$vegTypeMap <- sim$vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
-                                                     sim$vegLeadingProportion)
-
-    # vegetation type summary
+                                            sim$vegLeadingProportion)
+  
+  # vegetation type summary
   # if(is.null(sim$LandMine$vegTypeMapGenerator)) { # This may be produced in a specific fire module
   #   species <- sim$species
   #   species[species == "Pinu_sp" | species == "Pinu_sp", speciesGroup := "PINU"]
@@ -135,7 +172,7 @@ AllEvents <- function(sim) {
                                              totalB = mean(totalB, na.rm = TRUE)),
                                          by = c("pixelGroup", "speciesGroup")]
       shortcohortdata[,speciesProportion := speciesGroupB/totalB]
-
+      
       speciesLeading <- NULL
       Factor <- NULL
       ID <- NULL
@@ -146,7 +183,7 @@ AllEvents <- function(sim) {
       totalB <- NULL
       B <- NULL
       speciesGroupB <- NULL
-
+      
       shortcohortdata[speciesGroup == "PINU" & speciesProportion > vegLeadingProportion,
                       speciesLeading := 1]# pine leading
       shortcohortdata[speciesGroup == "DECI" & speciesProportion > vegLeadingProportion,
@@ -172,8 +209,10 @@ AllEvents <- function(sim) {
       vegTypeMap
     }
   }
-
-  sim$vegLeadingProportion <- 0.80
+  
+  if (!suppliedElsewhere("vegLeadingProportion", sim)) {
+    sim$vegLeadingProportion <- 0.8
+  }
   if (!suppliedElsewhere("cohortData", sim))
     sim$cohortData <- data.table()
   if (!suppliedElsewhere("pixelGroupMap", sim))
