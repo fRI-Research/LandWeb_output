@@ -84,7 +84,7 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
   setColors(vtm, vtmTypes) <- 
     equivalentName(vtmTypes, df = speciesEquivalency, "cols")
   #facVals <- factorValues(vtm, vtm[], att = "Species")[[1]]
-  facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species")
+  facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
   df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
   df <- df[!is.na(df$species)]
   df$species <- equivalentName(df$species, speciesEquivalency, "shortNames")
