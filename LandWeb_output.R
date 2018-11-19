@@ -10,7 +10,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
-  reqdPkgs = list("data.table", "raster", "SpaDES.tools"),
+  reqdPkgs = list("data.table", "raster", "SpaDES.tools", "PredictiveEcology/pemisc"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
@@ -32,8 +32,7 @@ defineModule(sim, list(
                  sourceURL = NA),
     expectsInput(objectName = "vegLeadingProportion", objectClass = "numeric",
                  desc = "a number that define whether a species is lead for a given pixel",
-                 sourceURL = NA),
-    expectsInput("vegTypeMapGenerator", "function", "converts a species table and cohortdata and pixelGroupMap to vegTypeMap raster")
+                 sourceURL = NA)
   ),
   outputObjects = bind_rows(
     createsOutput(objectName = "vegTypeMap", objectClass = "Raster", desc = NA)
@@ -102,108 +101,15 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
 }
 ### template for your event1
 AllEvents <- function(sim) {
-  sim$vegTypeMap <- sim$vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
-                                            sim$vegLeadingProportion)
-
-  # vegetation type summary
-  # if(is.null(sim$LandMine$vegTypeMapGenerator)) { # This may be produced in a specific fire module
-  #   species <- sim$species
-  #   species[species == "Pinu_sp" | species == "Pinu_sp", speciesGroup := "PINU"]
-  #   species[species == "Betu_pap" | species == "Popu_bal"|
-  #             species == "Popu_tre" | species == "Lari_lar", speciesGroup := "DECI"]
-  #   species[species == "Pice_mar" | species == "Pice_gla", speciesGroup := "PICE"]
-  #   cohortdata <- sim$cohortData
-  #   shortcohortdata <- setkey(cohortdata, speciesCode)[setkey(species[,.(speciesCode, speciesGroup)],
-  #                                                             speciesCode), nomatch = 0]
-  #   shortcohortdata[, totalB := sum(B, na.rm = TRUE), by = pixelGroup]
-  #   shortcohortdata <- shortcohortdata[,.(speciesGroupB = sum(B, na.rm = TRUE),
-  #                                         totalB = mean(totalB, na.rm = TRUE)),
-  #                                      by = c("pixelGroup", "speciesGroup")]
-  #   shortcohortdata[,speciesProportion:=speciesGroupB/totalB]
-  #   shortcohortdata[speciesGroup == "PINU" & speciesProportion > vegLeadingProportion,
-  #                   speciesLeading := 1]# pine leading
-  #   shortcohortdata[speciesGroup == "DECI" & speciesProportion > vegLeadingProportion,
-  #                   speciesLeading := 2]# deciduous leading
-  #   shortcohortdata[speciesGroup == "PICE" & speciesProportion > vegLeadingProportion,
-  #                   speciesLeading := 3]# spruce leading
-  #   shortcohortdata[is.na(speciesLeading), speciesLeading := 0]
-  #   shortcohortdata[,speciesLeading:=max(speciesLeading, na.rm = TRUE), by = pixelGroup]
-  #   shortcohortdata <- unique(shortcohortdata[,.(pixelGroup, speciesLeading)], by = "pixelGroup")
-  #   shortcohortdata[speciesLeading == 0, speciesLeading := 4] # 4 is mixed forests
-  #   attritable <- data.table(ID = unique(shortcohortdata$speciesLeading))
-  #   attritable[ID == 1, Factor := "Pine leading"]
-  #   attritable[ID == 2, Factor := "Deciduous leading"]
-  #   attritable[ID == 3, Factor := "Spruce leading"]
-  #   attritable[ID == 4, Factor := "Mixed"]
-  #   pixelGroupMap <- sim$pixelGroupMap
-  #   vegTypeMap <- rasterizeReduced(shortcohortdata, pixelGroupMap, "speciesLeading")
-  #   vegTypeMap <- setValues(vegTypeMap, as.integer(getValues(vegTypeMap)))
-  #   levels(vegTypeMap) <- as.data.frame(attritable)
-  #   projection(vegTypeMap) <- projection(sim$pixelGroupMap)
-  #   sim$vegTypeMap <- vegTypeMap
-  # } else {
-  #   sim$vegTypeMap <- sim$LandMine$vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
-  #                                             sim$vegLeadingProportion)
-  # }
+  sim$vegTypeMap <- vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
+                                        sim$vegLeadingProportion)
   return(invisible(sim))
 }
 
 .inputObjects <- function(sim) {
   if (!suppliedElsewhere("summaryPeriod", sim))
     sim$summaryPeriod <- c(1000, 1500)
-  if (!suppliedElsewhere("vegTypeMapGenerator", sim)) { # otherwise created in LandMine
-    sim$vegTypeMapGenerator <- function(species, cohortdata, pixelGroupMap, vegLeadingProportion) {
-      species[species == "Pinu_ban" | species == "Pinu_con" | species == "Pinu_sp", speciesGroup := "PINU"]
-      species[species == "Betu_pap" | species == "Popu_bal" | species == "Popu_tre" |
-                species == "Lari_lar", speciesGroup := "DECI"]
-      species[species == "Pice_mar" , speciesGroup := "PICE_MAR"]
-      species[species == "Pice_gla", speciesGroup := "PICE_GLA"]
-      species[species == "Abie_sp" , speciesGroup := "ABIE"]
-      #cohortdata <- sim$cohortData
-      shortcohortdata <- setkey(cohortdata, speciesCode)[setkey(species[, .(speciesCode, speciesGroup)],
-                                                                speciesCode), nomatch = 0]
-      shortcohortdata[, totalB := sum(B, na.rm = TRUE), by = pixelGroup]
-      shortcohortdata <- shortcohortdata[, .(speciesGroupB = sum(B, na.rm = TRUE),
-                                             totalB = mean(totalB, na.rm = TRUE)),
-                                         by = c("pixelGroup", "speciesGroup")]
-      shortcohortdata[,speciesProportion := speciesGroupB/totalB]
 
-      speciesLeading <- NULL
-      Factor <- NULL
-      ID <- NULL
-      pixelGroup <- NULL
-      speciesProportion <- NULL
-      speciesGroup <- NULL
-      speciesCode <- NULL
-      totalB <- NULL
-      B <- NULL
-      speciesGroupB <- NULL
-
-      shortcohortdata[speciesGroup == "PINU" & speciesProportion > vegLeadingProportion,
-                      speciesLeading := 1]# pine leading
-      shortcohortdata[speciesGroup == "DECI" & speciesProportion > vegLeadingProportion,
-                      speciesLeading := 2]# deciduous leading
-      shortcohortdata[speciesGroup == "PICE_MAR" & speciesProportion > vegLeadingProportion,
-                      speciesLeading := 3]# spruce leading
-      shortcohortdata[speciesGroup == "PICE_GLA" & speciesProportion > vegLeadingProportion,
-                      speciesLeading := 4]# spruce leading
-      shortcohortdata[is.na(speciesLeading), speciesLeading := 0]
-      shortcohortdata[, speciesLeading := max(speciesLeading, na.rm = TRUE), by = pixelGroup]
-      shortcohortdata <- unique(shortcohortdata[, .(pixelGroup, speciesLeading)], by = "pixelGroup")
-      shortcohortdata[speciesLeading == 0, speciesLeading := 5] # 5 is mixed forests
-      attritable <- data.table(ID = sort(unique(shortcohortdata$speciesLeading)))
-      attritable[ID == 1, Factor := "Pine leading"]
-      attritable[ID == 2, Factor := "Deciduous leading"]
-      attritable[ID == 3, Factor := "Black spruce leading"]
-      attritable[ID == 4, Factor := "White spruce leading"]
-      attritable[ID == 5, Factor := "Mixed"]
-      vegTypeMap <- rasterizeReduced(shortcohortdata, pixelGroupMap, "speciesLeading", "pixelGroup")
-      vegTypeMap <- setValues(vegTypeMap, as.integer(getValues(vegTypeMap)))
-      levels(vegTypeMap) <- as.data.frame(attritable)
-      projection(vegTypeMap) <- projection(pixelGroupMap)
-      vegTypeMap
-    }
-  }
   if (!suppliedElsewhere("vegLeadingProportion", sim)) {
     sim$vegLeadingProportion <- 0.8
   }
