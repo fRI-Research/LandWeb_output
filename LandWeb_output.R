@@ -17,22 +17,22 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
+    expectsInput(objectName = "cohortData", objectClass = "data.table",
+                 desc = "age cohort-biomass table hooked to pixel group map by pixelGroupIndex at
+                 succession time step, this is imported from forest succession module",
+                 sourceURL = NA),
+    expectsInput("species", "data.table", "Columns: species, speciesCode, Indicating several features about species",
+                 sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
+    expectsInput(objectName = "pixelGroupMap", objectClass = "RasterLayer",
+                 desc = "updated community map at each succession time step, this is imported from
+                 forest succession module",
+                 sourceURL = NA),
     expectsInput(objectName = "summaryPeriod", objectClass = "numeric",
                  desc = "a numeric vector contains the start year and end year of summary",
                  sourceURL = NA),
     expectsInput(objectName = "vegLeadingProportion", objectClass = "numeric",
                  desc = "a number that define whether a species is lead for a given pixel",
                  sourceURL = NA),
-    expectsInput(objectName = "cohortData", objectClass = "data.table",
-                 desc = "age cohort-biomass table hooked to pixel group map by pixelGroupIndex at
-                 succession time step, this is imported from forest succession module",
-                 sourceURL = NA),
-    expectsInput(objectName = "pixelGroupMap", objectClass = "RasterLayer",
-                 desc = "updated community map at each succession time step, this is imported from
-                 forest succession module",
-                 sourceURL = NA),
-    expectsInput("species", "data.table", "Columns: species, speciesCode, Indicating several features about species",
-                 sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
     expectsInput("vegTypeMapGenerator", "function", "converts a species table and cohortdata and pixelGroupMap to vegTypeMap raster")
   ),
   outputObjects = bind_rows(
@@ -42,7 +42,6 @@ defineModule(sim, list(
 
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
-
     sim <- scheduleEvent(sim, 0, "LandWeb_output", "initialConditions", eventPriority = 1)
     sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
@@ -91,12 +90,11 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
   cols2 <- df$cols
   names(cols2) <- df$species
   initialLeadingPlot <- ggplot(data = df, aes(species, fill = species)) +
-    scale_fill_manual(values=cols2) +
-    geom_bar(position = 'stack') +
+    scale_fill_manual(values = cols2) +
+    geom_bar(position = "stack") +
     #labs(x = "Year", y = "Biomass by species") +
     theme(legend.text = element_text(size = 6), legend.title = element_blank(),
           axis.text = element_text(size = 6))
-
 
   Plot(initialLeadingPlot, title = c("Initial leading types"))
   Plot(vtm, title = "Initial leading types")
@@ -149,7 +147,6 @@ AllEvents <- function(sim) {
   # }
   return(invisible(sim))
 }
-
 
 .inputObjects <- function(sim) {
   if (!suppliedElsewhere("summaryPeriod", sim))
@@ -227,4 +224,3 @@ AllEvents <- function(sim) {
   }
   return(invisible(sim))
 }
-### add additional events as needed by copy/pasting from above
