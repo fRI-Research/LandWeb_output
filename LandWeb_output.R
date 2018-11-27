@@ -63,10 +63,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 ## event functions
-#   - follow the naming convention `modulenameEventtype()`;
-#   - `modulenameInit()` function is required for initiliazation;
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
-
 
 plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speciesEquivalency) {
   if (is.null(vtm)) {
@@ -79,7 +76,6 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
   vtmTypes <- factorValues(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
   setColors(vtm, vtmTypes) <-
     equivalentName(vtmTypes, df = speciesEquivalency, "cols")
-  #facVals <- factorValues(vtm, vtm[], att = "Species")[[1]]
   facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
   df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
   df <- df[!is.na(df$species)]
@@ -97,9 +93,8 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
 
   Plot(initialLeadingPlot, title = c("Initial leading types"))
   Plot(vtm, title = "Initial leading types")
-
 }
-### template for your event1
+
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
                                         sim$vegLeadingProportion)
@@ -120,9 +115,7 @@ AllEvents <- function(sim) {
   if (!suppliedElsewhere("species", sim)) {
     localSpeciesFilename <- file.path(dataPath(sim), "speciesTraits.csv")
     if (!file.exists(localSpeciesFilename)) {
-      mm <- moduleMetadata(currentModule(sim), getPaths()$modulePath)$inputObjects
-      download.file(subset(mm, objectName == "species")$sourceURL,
-                    destfile = localSpeciesFilename)
+      download.file(extractURL("species"), destfile = localSpeciesFilename)
     }
     sim$species <- read.csv(localSpeciesFilename, header = TRUE,
                             stringsAsFactors = FALSE) %>%
