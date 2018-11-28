@@ -70,12 +70,10 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
     if (!is.null(speciesStack))
       vtm <- Cache(pemisc::makeVegTypeMap, speciesStack, vegLeadingProportion)
     else
-      stop("plotVTM requires either a speciesStack of percent cover or a vegetation type map (vtm)")
+      stop("plotVTM requires either a speciesStack of percent cover or a vegetation type map (vtm).")
   }
 
-  vtmTypes <- factorValues(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
-  setColors(vtm, vtmTypes) <-
-    equivalentName(vtmTypes, df = speciesEquivalency, "cols")
+  ## plot initial types bar chart
   facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
   df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
   df <- df[!is.na(df$species)]
@@ -92,6 +90,12 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
           axis.text = element_text(size = 6))
 
   Plot(initialLeadingPlot, title = c("Initial leading types"))
+
+  ## plot inital types raster
+  vtmTypes <- factorValues2(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
+  vtmCols <- equivalentName(vtmTypes, df = speciesEquivalency, "cols")
+  setColors(vtm, c(0, vtmTypes)) <- c("#FFFFFF", vtmCols)
+
   Plot(vtm, title = "Initial leading types")
 }
 
