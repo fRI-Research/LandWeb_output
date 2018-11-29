@@ -49,7 +49,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
-    plotVTM(sim$speciesLayers, vegLeadingProportion = sim$vegLeadingProportion,
+    plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
+            vegLeadingProportion = sim$vegLeadingProportion,
             speciesEquivalency = sim$speciesEquivalency)
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
