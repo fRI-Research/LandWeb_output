@@ -17,25 +17,28 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput(objectName = "cohortData", objectClass = "data.table",
-                 desc = "age cohort-biomass table hooked to pixel group map by pixelGroupIndex at
-                 succession time step, this is imported from forest succession module",
+    expectsInput("cohortData", "data.table",
+                 desc = paste("age cohort-biomass table hooked to pixel group map by pixelGroupIndex at",
+                              "succession time step, this is imported from forest succession module"),
                  sourceURL = NA),
-    expectsInput("species", "data.table", "Columns: species, speciesCode, Indicating several features about species",
+    expectsInput("species", "data.table",
+                 desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
-    expectsInput(objectName = "pixelGroupMap", objectClass = "RasterLayer",
-                 desc = "updated community map at each succession time step, this is imported from
-                 forest succession module",
+    expectsInput("pixelGroupMap", "RasterLayer",
+                 desc = "updated community map at each succession time step",
                  sourceURL = NA),
-    expectsInput(objectName = "summaryPeriod", objectClass = "numeric",
+    expectsInput("speciesLayers", "RasterStack",
+                 desc = "biomass percentage raster layers by species in Canada species map",
+                 sourceURL = "http://tree.pfc.forestry.ca/kNN-Species.tar"),
+    expectsInput("summaryPeriod", "numeric",
                  desc = "a numeric vector contains the start year and end year of summary",
                  sourceURL = NA),
-    expectsInput(objectName = "vegLeadingProportion", objectClass = "numeric",
-                 desc = "a number that define whether a species is lead for a given pixel",
+    expectsInput("vegLeadingProportion", "numeric",
+                 desc = "a number that define whether a species is leading for a given pixel",
                  sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    createsOutput(objectName = "vegTypeMap", objectClass = "Raster", desc = NA)
+    createsOutput("vegTypeMap", "Raster", desc = NA)
   )
 ))
 
@@ -46,7 +49,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
-    plotVTM(sim$specieslayers, vegLeadingProportion = sim$vegLeadingProportion,
+    plotVTM(sim$speciesLayers, vegLeadingProportion = sim$vegLeadingProportion,
             speciesEquivalency = sim$speciesEquivalency)
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
@@ -106,24 +109,45 @@ AllEvents <- function(sim) {
 }
 
 .inputObjects <- function(sim) {
+  cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
+  cPath <- cachePath(sim)
+  dPath <- asPath(dataPath(sim), 1)
+
   if (!suppliedElsewhere("summaryPeriod", sim))
     sim$summaryPeriod <- c(1000, 1500)
 
   if (!suppliedElsewhere("vegLeadingProportion", sim)) {
     sim$vegLeadingProportion <- 0.8
   }
+
   if (!suppliedElsewhere("cohortData", sim))
     sim$cohortData <- data.table()
+
   if (!suppliedElsewhere("pixelGroupMap", sim))
     sim$pixelGroupMap <- raster()
+
   if (!suppliedElsewhere("species", sim)) {
-    localSpeciesFilename <- file.path(dataPath(sim), "speciesTraits.csv")
-    if (!file.exists(localSpeciesFilename)) {
-      download.file(extractURL("species"), destfile = localSpeciesFilename)
-    }
-    sim$species <- read.csv(localSpeciesFilename, header = TRUE,
-                            stringsAsFactors = FALSE) %>%
-      data.table()
+    sim$speciesTable <- getSpeciesTable(dPath, cacheTags)
+  }
+
+  if (!suppliedElsewhere("speciesLayers", sim)) {
+    #opts <- options(reproducible.useCache = "overwrite")
+    speciesLayersList <- Cache(loadkNNSpeciesLayers,
+                               dPath = dPath,
+                               rasterToMatch = sim$rasterToMatch,
+                               studyArea = sim$shpStudyAreaLarge,
+                               speciesList = sim$speciesList,
+                               # thresh = 10,
+                               url = extractURL("speciesLayers"),
+                               cachePath = cachePath(sim),
+                               userTags = c(cacheTags, "speciesLayers"))
+
+    #options(opts)
+    writeRaster(speciesLayersList$speciesLayers,
+                file.path(outputPath(sim), "speciesLayers.grd"),
+                overwrite = TRUE)
+    sim$speciesLayers <- speciesLayersList$speciesLayers
+    #sim$speciesList <- speciesLayersList$speciesList ## not used in this module
   }
   return(invisible(sim))
 }
