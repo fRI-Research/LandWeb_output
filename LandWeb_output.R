@@ -95,9 +95,9 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
   Plot(initialLeadingPlot, title = c("Initial leading types"))
 
   ## plot inital types raster
-  vtmTypes <- factorValues2(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
+  vtmTypes <- factorValues(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
   vtmCols <- equivalentName(vtmTypes, df = speciesEquivalency, "cols")
-  setColors(vtm, c(0, vtmTypes)) <- c("#FFFFFF", vtmCols)
+  setColors(vtm, vtmTypes) <- vtmCols
 
   Plot(vtm, title = "Initial leading types")
 }
