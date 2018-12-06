@@ -20,13 +20,16 @@ defineModule(sim, list(
     expectsInput("cohortData", "data.table",
                  desc = paste("age cohort-biomass table hooked to pixel group map by pixelGroupIndex at",
                               "succession time step, this is imported from forest succession module"),
-                 sourceURL = NA),
+                 sourceURL = ""),
     expectsInput("species", "data.table",
                  desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
     expectsInput("pixelGroupMap", "RasterLayer",
                  desc = "updated community map at each succession time step",
-                 sourceURL = NA),
+                 sourceURL = ""),
+    expectsInput("speciesEquivalency", "data.table",
+                 desc = "table of species equivalencies. See pemisc::sppEquivalencies_CA.",
+                 sourceURL = ""),
     expectsInput("speciesLayers", "RasterStack",
                  desc = "biomass percentage raster layers by species in Canada species map",
                  sourceURL = "http://tree.pfc.forestry.ca/kNN-Species.tar"),
@@ -37,10 +40,10 @@ defineModule(sim, list(
                  sourceURL = ""),
     expectsInput("summaryPeriod", "numeric",
                  desc = "a numeric vector contains the start year and end year of summary",
-                 sourceURL = NA),
+                 sourceURL = ""),
     expectsInput("vegLeadingProportion", "numeric",
                  desc = "a number that define whether a species is leading for a given pixel",
-                 sourceURL = NA)
+                 sourceURL = "")
   ),
   outputObjects = bind_rows(
     createsOutput("vegTypeMap", "Raster", desc = NA)
@@ -86,7 +89,7 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
   facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
   df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
   df <- df[!is.na(df$species)]
-  df$species <- equivalentName(df$species, speciesEquivalency, "shortNames")
+  df$species <- equivalentName(df$species, speciesEquivalency, "EN_generic_short")
   df$cols <- equivalentName(df$species, speciesEquivalency, "cols")
 
   cols2 <- df$cols
@@ -134,6 +137,14 @@ AllEvents <- function(sim) {
 
   if (!suppliedElsewhere("species", sim)) {
     sim$speciesTable <- getSpeciesTable(dPath, cacheTags)
+  }
+
+  if (!suppliedElsewhere("speciesEquivalency", sim)) {
+    data("sppEquivalencies_CA", package = "pemisc")
+    sim$speciesEquivalency <- as.data.table(sppEquivalencies_CA)
+
+    ## By default, Abies_las is renamed to Abies_sp
+    sim$speciesEquivalency[KNN == "Abie_Las", LandR := "Abie_sp"]
   }
 
   if (!suppliedElsewhere("speciesLayers", sim)) {
