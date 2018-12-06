@@ -14,6 +14,8 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
+    defineParameter("vegLeadingProportion", "numeric", 80, 0, 100,
+                    desc = "a number that define whether a species is leading for a given pixel"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
@@ -40,9 +42,6 @@ defineModule(sim, list(
                  sourceURL = ""),
     expectsInput("summaryPeriod", "numeric",
                  desc = "a numeric vector contains the start year and end year of summary",
-                 sourceURL = ""),
-    expectsInput("vegLeadingProportion", "numeric",
-                 desc = "a number that define whether a species is leading for a given pixel",
                  sourceURL = "")
   ),
   outputObjects = bind_rows(
@@ -58,7 +57,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
     plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
-            vegLeadingProportion = sim$vegLeadingProportion,
+            vegLeadingProportion = P(sim)$vegLeadingProportion,
             speciesEquivalency = sim$speciesEquivalency)
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
@@ -113,7 +112,7 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
 
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
-                                        sim$vegLeadingProportion)
+                                        P(sim)$vegLeadingProportion)
   return(invisible(sim))
 }
 
@@ -124,10 +123,6 @@ AllEvents <- function(sim) {
 
   if (!suppliedElsewhere("summaryPeriod", sim))
     sim$summaryPeriod <- c(1000, 1500)
-
-  if (!suppliedElsewhere("vegLeadingProportion", sim)) {
-    sim$vegLeadingProportion <- 0.8
-  }
 
   if (!suppliedElsewhere("cohortData", sim))
     sim$cohortData <- data.table()
