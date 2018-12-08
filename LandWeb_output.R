@@ -29,7 +29,7 @@ defineModule(sim, list(
     expectsInput("pixelGroupMap", "RasterLayer",
                  desc = "updated community map at each succession time step",
                  sourceURL = ""),
-    expectsInput("speciesEquivalency", "data.table",
+    expectsInput("sppEquiv", "data.table",
                  desc = "table of species equivalencies. See pemisc::sppEquivalencies_CA.",
                  sourceURL = ""),
     expectsInput("speciesLayers", "RasterStack",
@@ -58,7 +58,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   } else if (eventType == "initialConditions") {
     plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
-            speciesEquivalency = sim$speciesEquivalency)
+            sppEquiv = sim$sppEquiv)
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
         time(sim) <= sim$summaryPeriod[2]) {
@@ -76,7 +76,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 ## event functions
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
-plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speciesEquivalency) {
+plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, sppEquiv) {
   if (is.null(vtm)) {
     if (!is.null(speciesStack))
       vtm <- Cache(pemisc::makeVegTypeMap, speciesStack, vegLeadingProportion)
@@ -88,8 +88,8 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
   facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
   df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
   df <- df[!is.na(df$species)]
-  df$species <- equivalentName(df$species, speciesEquivalency, "EN_generic_short")
-  df$cols <- equivalentName(df$species, speciesEquivalency, "cols")
+  df$species <- equivalentName(df$species, sppEquiv, "EN_generic_short")
+  df$cols <- equivalentName(df$species, sppEquiv, "cols")
 
   cols2 <- df$cols
   names(cols2) <- df$species
@@ -104,7 +104,7 @@ plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, speci
 
   ## plot inital types raster
   vtmTypes <- factorValues(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
-  vtmCols <- equivalentName(vtmTypes, df = speciesEquivalency, "cols")
+  vtmCols <- equivalentName(vtmTypes, df = sppEquiv, "cols")
   setColors(vtm, vtmTypes) <- vtmCols
 
   Plot(vtm, title = "Initial leading types")
@@ -134,18 +134,18 @@ AllEvents <- function(sim) {
     sim$speciesTable <- getSpeciesTable(dPath, cacheTags)
   }
 
-  if (!suppliedElsewhere("speciesEquivalency", sim)) {
+  if (!suppliedElsewhere("sppEquiv", sim)) {
     data("sppEquivalencies_CA", package = "pemisc", envir = environment())
-    sim$speciesEquivalency <- as.data.table(sppEquivalencies_CA)
+    sim$sppEquiv <- as.data.table(sppEquivalencies_CA)
 
     ## By default, Abies_las is renamed to Abies_sp
-    sim$speciesEquivalency[KNN == "Abie_Las", LandR := "Abie_sp"]
+    sim$sppEquiv[KNN == "Abie_Las", LandR := "Abie_sp"]
 
     ## add default colors for species used in model
     defaultCols <- RColorBrewer::brewer.pal(6, "Accent")
     LandRNames <- c("Pice_mar", "Pice_gla", "Popu_tre", "Pinu_sp", "Abie_sp")
-    sim$speciesEquivalency[LandR %in% LandRNames, cols := defaultCols[-4]]
-    sim$speciesEquivalency[EN_generic_full == "Mixed", cols := defaultCols[4]]
+    sim$sppEquiv[LandR %in% LandRNames, cols := defaultCols[-4]]
+    sim$sppEquiv[EN_generic_full == "Mixed", cols := defaultCols[4]]
   }
 
   if (!suppliedElsewhere("speciesLayers", sim)) {
