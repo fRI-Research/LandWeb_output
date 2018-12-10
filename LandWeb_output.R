@@ -13,6 +13,8 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "raster", "SpaDES.tools", "PredictiveEcology/pemisc"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
+    defineParameter("sppEquivCol", "character", "LandWeb", NA, NA,
+                    "The column in sim$specieEquivalency data.table to use as a naming convention"),
     defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
     defineParameter("vegLeadingProportion", "numeric", 80, 0, 100,
                     desc = "a number that define whether a species is leading for a given pixel"),
@@ -58,7 +60,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   } else if (eventType == "initialConditions") {
     plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
-            sppEquiv = sim$sppEquiv)
+            sppEquiv = sim$sppEquiv, sppEquivCol = P(sim)$sppEquivCol)
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
         time(sim) <= sim$summaryPeriod[2]) {
@@ -76,13 +78,17 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 ## event functions
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
-plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion, sppEquiv) {
+plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion,
+                    sppEquiv, sppEquivCol) {
   if (is.null(vtm)) {
     if (!is.null(speciesStack))
       vtm <- Cache(pemisc::makeVegTypeMap, speciesStack, vegLeadingProportion)
     else
       stop("plotVTM requires either a speciesStack of percent cover or a vegetation type map (vtm).")
   }
+
+  ## the ones we want
+  sppEquiv <- sppEquiv[!is.na(sppEquiv[[sppEquivCol]]),]
 
   ## plot initial types bar chart
   facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
