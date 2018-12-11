@@ -53,7 +53,7 @@ defineModule(sim, list(
 
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
-    sim <- scheduleEvent(sim, .plotInitialTime, "LandWeb_output", "initialConditions",
+    sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "LandWeb_output", "initialConditions",
                          eventPriority = 1)
     sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
