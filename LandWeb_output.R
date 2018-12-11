@@ -16,7 +16,7 @@ defineModule(sim, list(
     defineParameter("sppEquivCol", "character", "LandWeb", NA, NA,
                     "The column in sim$specieEquivalency data.table to use as a naming convention"),
     defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
-    defineParameter("vegLeadingProportion", "numeric", 80, 0, 100,
+    defineParameter("vegLeadingProportion", "numeric", 0.8, 0, 1,
                     desc = "a number that define whether a species is leading for a given pixel"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
@@ -53,14 +53,17 @@ defineModule(sim, list(
 
 doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
-    sim <- scheduleEvent(sim, 0, "LandWeb_output", "initialConditions", eventPriority = 1)
+    sim <- scheduleEvent(sim, .plotInitialTime, "LandWeb_output", "initialConditions",
+                         eventPriority = 1)
     sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
     plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
-            sppEquiv = sim$sppEquiv, sppEquivCol = P(sim)$sppEquivCol)
+            sppEquiv = sim$sppEquiv,
+            sppEquivCol = P(sim)$sppEquivCol,
+            title = "Initial Types")
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
         time(sim) <= sim$summaryPeriod[2]) {
@@ -77,44 +80,6 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 
 ## event functions
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
-
-plotVTM <- function(speciesStack = NULL, vtm = NULL, vegLeadingProportion,
-                    sppEquiv, sppEquivCol) {
-  if (is.null(vtm)) {
-    if (!is.null(speciesStack))
-      vtm <- Cache(pemisc::makeVegTypeMap, speciesStack, vegLeadingProportion)
-    else
-      stop("plotVTM requires either a speciesStack of percent cover or a vegetation type map (vtm).")
-  }
-
-  ## the ones we want
-  sppEquiv <- sppEquiv[!is.na(sppEquiv[[sppEquivCol]]),]
-
-  ## plot initial types bar chart
-  facVals <- pemisc::factorValues2(vtm, vtm[], att = "Species", na.rm = TRUE)
-  df <- data.table(species = as.character(facVals), stringsAsFactors = FALSE)
-  df <- df[!is.na(df$species)]
-  df$species <- equivalentName(df$species, sppEquiv, "EN_generic_short")
-  df$cols <- equivalentName(df$species, sppEquiv, "cols")
-
-  cols2 <- df$cols
-  names(cols2) <- df$species
-  initialLeadingPlot <- ggplot(data = df, aes(species, fill = species)) +
-    scale_fill_manual(values = cols2) +
-    geom_bar(position = "stack") +
-    #labs(x = "Year", y = "Biomass by species") +
-    theme(legend.text = element_text(size = 6), legend.title = element_blank(),
-          axis.text = element_text(size = 6))
-
-  Plot(initialLeadingPlot, title = c("Initial leading types"))
-
-  ## plot inital types raster
-  vtmTypes <- factorValues(vtm, seq(minValue(vtm), maxValue(vtm)), att = "Species")[[1]]
-  vtmCols <- equivalentName(vtmTypes, df = sppEquiv, "cols")
-  setColors(vtm, vtmTypes) <- vtmCols
-
-  Plot(vtm, title = "Initial leading types")
-}
 
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
