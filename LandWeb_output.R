@@ -18,6 +18,10 @@ defineModule(sim, list(
     defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
     defineParameter("vegLeadingProportion", "numeric", 0.8, 0, 1,
                     desc = "a number that define whether a species is leading for a given pixel"),
+    defineParameter(".plotInitialTime", "numeric", 0, NA, NA,
+                    "This describes the simulation time at which the first plot event should occur"),
+    defineParameter(".plotInterval", "numeric", 1, NA, NA,
+                    "This describes the simulation time interval between plot events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
@@ -25,12 +29,15 @@ defineModule(sim, list(
                  desc = paste("age cohort-biomass table hooked to pixel group map by pixelGroupIndex at",
                               "succession time step, this is imported from forest succession module"),
                  sourceURL = ""),
+    expectsInput("fireReturnInterval","Raster",
+                 desc = "A raster layer that is a factor raster, with at least 1 column called fireReturnInterval, representing the fire return interval in years"),
     expectsInput("pixelGroupMap", "RasterLayer",
                  desc = "updated community map at each succession time step",
                  sourceURL = ""),
     expectsInput("rasterToMatch", "RasterLayer",
                  desc = "this raster contains two pieces of information: Full study area with fire return interval attribute", ## TODO: is this correct?
                  sourceURL = NA),
+    expectsInput("rstTimeSinceFire", "Raster", "a time since fire raster layer", NA),
     expectsInput("species", "data.table",
                  desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
@@ -66,6 +73,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   if (eventType == "init") {
     sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "LandWeb_output", "initialConditions",
                          eventPriority = 1)
+    sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "LandWeb_output", "otherPlots",
+                         eventPriority = 1)
     sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
@@ -88,6 +97,30 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim,  time(sim) + P(sim)$summaryInterval,
                            "LandWeb_output", "allEvents", eventPriority = 7.5)
     }
+  } else if (eventType == "otherPlots") {
+    ## average age by FRI polygon
+    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$rasterToMatch)
+    fris <- unique(na.omit(sim$fireReturnInterval[]))
+    names(fris) <- fris
+    tsfs <- vapply(fris, function(x) {
+      ids <- which(sim$fireReturnInterval[] == x)
+      unname(mean(tsfMap[ids]))
+    }, numeric(1))
+    polys <- sim$fireReturnInterval
+    tsfDF <- data.frame(time = as.numeric(times(sim)$current),
+                        meanAge = unname(tsfs),
+                        FRI = as.factor(unname(fris)))
+    mod$tsfOverTime <- rbind(mod$tsfOverTime, tsfDF)
+    gg_tsfOverTime <- ggplot(mod$tsfOverTime,
+                             aes(x = time, y = meanAge, fill = FRI, ymin = 0)) +
+      geom_area() +
+      theme(legend.text = element_text(size = 6))
+
+    Plot(gg_tsfOverTime, title = "Average age (TSF) by FRI polygon", addTo = "ageOverTime")
+
+    ## schedule future plots
+    sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output", "otherPlots",
+                         eventPriority = 1)
   } else {
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -108,6 +141,9 @@ AllEvents <- function(sim) {
   cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
   cPath <- cachePath(sim)
   dPath <- asPath(dataPath(sim), 1)
+
+  if (!suppliedElsewhere("fireReturnInterval", sim))
+    stop("fireReturnInterval map must be supplied.")
 
   if (!suppliedElsewhere("rasterToMatch", sim))
     stop("rasterToMatch must be supplied.")
