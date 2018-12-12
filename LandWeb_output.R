@@ -28,6 +28,9 @@ defineModule(sim, list(
     expectsInput("pixelGroupMap", "RasterLayer",
                  desc = "updated community map at each succession time step",
                  sourceURL = ""),
+    expectsInput("rasterToMatch", "RasterLayer",
+                 desc = "this raster contains two pieces of information: Full study area with fire return interval attribute", ## TODO: is this correct?
+                 sourceURL = NA),
     expectsInput("species", "data.table",
                  desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
@@ -42,6 +45,9 @@ defineModule(sim, list(
     expectsInput("speciesLayers", "RasterStack",
                  desc = "biomass percentage raster layers by species in Canada species map",
                  sourceURL = "http://tree.pfc.forestry.ca/kNN-Species.tar"),
+    expectsInput("standAgeMap", "RasterLayer",
+                 desc = "stand age map in study area, default is Canada national stand age map",
+                 sourceURL = "http://tree.pfc.forestry.ca/kNN-StructureStandVolume.tar"),
     expectsInput("studyArea", "SpatialPolygonsDataFrame",
                  desc = paste("multipolygon to use as the study area,",
                               "with attribute LTHFC describing the fire return interval.",
@@ -64,12 +70,17 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
+    ## plot initial veg types bar graph and raster map
     plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
             colors = sim$sppColors,
             title = "Initial Types")
+
+    ## plot initial age map
+    ageMap <- raster::mask(sim$standAgeMap, sim$rasterToMatch)
+    Plot(ageMap, title = "Initial stand ages")
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
         time(sim) <= sim$summaryPeriod[2]) {
@@ -97,6 +108,9 @@ AllEvents <- function(sim) {
   cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
   cPath <- cachePath(sim)
   dPath <- asPath(dataPath(sim), 1)
+
+  if (!suppliedElsewhere("rasterToMatch", sim))
+    stop("rasterToMatch must be supplied.")
 
   if (!suppliedElsewhere("summaryPeriod", sim))
     sim$summaryPeriod <- c(1000, 1500)
@@ -144,5 +158,22 @@ AllEvents <- function(sim) {
     sim$speciesLayers <- speciesLayersList$speciesLayers
     #sim$speciesList <- speciesLayersList$speciesList ## not used in this module
   }
+
+  if (!suppliedElsewhere("standAgeMap", sim)) {
+    sim$standAgeMap <- Cache(prepInputs, #notOlderThan = Sys.time(),
+                             targetFile = basename(standAgeMapFilename),
+                             archive = asPath(c("kNN-StructureStandVolume.tar",
+                                                "NFI_MODIS250m_kNN_Structure_Stand_Age_v0.zip")),
+                             destinationPath = dPath,
+                             url = extractURL("standAgeMap"),
+                             fun = "raster::raster",
+                             studyArea = sim$studyAreaLarge,
+                             rasterToMatch = sim$rasterToMatch,
+                             method = "bilinear",
+                             datatype = "INT2U",
+                             filename2 = TRUE, overwrite = TRUE,
+                             userTags = c("stable", currentModule(sim)))
+  }
+
   return(invisible(sim))
 }
