@@ -117,7 +117,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     gg_tsfOverTime <- ggplot(mod$tsfOverTime,
                              aes(x = time, y = meanAge, fill = FRI, ymin = 0)) +
       geom_area() +
-      theme(legend.text = element_text(size = 6))
+      theme(legend.text = element_text(size = 6)) ## TODO: is a stacked plot the best way to show these!?
 
     Plot(gg_tsfOverTime, title = "Average age (TSF) by FRI polygon", addTo = "ageOverTime")
 
