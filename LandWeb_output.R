@@ -102,12 +102,12 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     }
   } else if (eventType == "otherPlots") {
     ## average age by FRI polygon
-    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$studyAreaReporting) %>% stack()
+    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$studyAreaReporting)
     fris <- unique(na.omit(sim$fireReturnInterval[]))
     names(fris) <- fris
-    tsfs <- vapply(fris, function(x) {
+    tsfs <- vapply(unname(fris), function(x) {
       ids <- which(sim$fireReturnInterval[] == x)
-      unname(mean(tsfMap[ids]))
+      unname(mean(tsfMap[ids], na.rm = TRUE))
     }, numeric(1))
     polys <- sim$fireReturnInterval
     tsfDF <- data.frame(time = as.numeric(times(sim)$current),
