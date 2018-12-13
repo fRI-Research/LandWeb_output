@@ -60,6 +60,10 @@ defineModule(sim, list(
                               "with attribute LTHFC describing the fire return interval.",
                               "Defaults to a square shapefile in Southwestern Alberta, Canada."),
                  sourceURL = ""),
+    expectsInput("studyAreaReporting", "SpatialPolygonsDataFrame",
+                 desc = paste("multipolygon (typically smaller/unbuffered than studyArea) to use for plotting/reporting.",
+                              "Defaults to an area in Southwestern Alberta, Canada."),
+                 sourceURL = NA),
     expectsInput("summaryPeriod", "numeric",
                  desc = "a numeric vector contains the start year and end year of summary",
                  sourceURL = "")
@@ -79,8 +83,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
-    ## plot initial veg types bar graph and raster map
-    plotVTM(speciesStack = stack(raster::mask(sim$speciesLayers, sim$rasterToMatch)),
+    plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% stack(),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
@@ -88,7 +91,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
             title = "Initial Types")
 
     ## plot initial age map
-    ageMap <- raster::mask(sim$standAgeMap, sim$rasterToMatch)
+    ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% stack()
     Plot(ageMap, title = "Initial stand ages")
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] &
@@ -99,7 +102,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     }
   } else if (eventType == "otherPlots") {
     ## average age by FRI polygon
-    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$rasterToMatch)
+    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$studyAreaReporting) %>% stack()
     fris <- unique(na.omit(sim$fireReturnInterval[]))
     names(fris) <- fris
     tsfs <- vapply(fris, function(x) {
@@ -142,11 +145,31 @@ AllEvents <- function(sim) {
   cPath <- cachePath(sim)
   dPath <- asPath(dataPath(sim), 1)
 
+  if (!suppliedElsewhere("studyArea", sim)) {
+    message("'studyArea' was not provided by user. Using a polygon in southwestern Alberta, Canada,")
+
+    sim$studyArea <- randomStudyArea(seed = 1234)
+  }
+
+  if (!suppliedElsewhere("studyAreaLarge", sim)) {
+    message("'studyAreaLarge' was not provided by user. Using the same as 'studyArea'.")
+    sim$studyAreaLarge <- sim$studyArea
+  }
+
+  if (!suppliedElsewhere("studyAreaReporting", sim)) {
+    message("'studyAreaReporting' was not provided by user. Using the same as 'studyArea'.")
+    sim$studyAreaLarge <- sim$studyArea
+  }
+
   if (!suppliedElsewhere("fireReturnInterval", sim))
     stop("fireReturnInterval map must be supplied.")
 
   if (!suppliedElsewhere("rasterToMatch", sim))
     stop("rasterToMatch must be supplied.")
+
+  if (!suppliedElsewhere("rasterToMatchReporting")) {
+    sim$rasterToMatchReporting <- sim$rasterToMatch
+  }
 
   if (!suppliedElsewhere("summaryPeriod", sim))
     sim$summaryPeriod <- c(1000, 1500)
