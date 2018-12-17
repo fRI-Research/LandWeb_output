@@ -142,8 +142,9 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 AllEvents <- function(sim) {
-  sim$vegTypeMap <- vegTypeMapGenerator(sim$species, sim$cohortData, sim$pixelGroupMap,
-                                        P(sim)$vegLeadingProportion)
+  sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
+                                        P(sim)$vegLeadingProportion,
+                                        colors = sim$sppColors)
   return(invisible(sim))
 }
 
