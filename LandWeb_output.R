@@ -114,12 +114,19 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
                         meanAge = unname(tsfs),
                         FRI = as.factor(unname(fris)))
     mod$tsfOverTime <- rbind(mod$tsfOverTime, tsfDF)
-    gg_tsfOverTime <- ggplot(mod$tsfOverTime,
-                             aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
-      geom_line(size = 1.5) +
-      theme(legend.text = element_text(size = 14))
+    mod$tsfOverTime <- mod$tsfOverTime[!is.na(mod$tsfOverTime$meanAge),]
 
-    Plot(gg_tsfOverTime, title = "Average age (TSF) by FRI polygon", addTo = "ageOverTime")
+    if (length(unique(mod$tsfOverTime$time)) > 1) {
+      gg_tsfOverTime <- ggplot(mod$tsfOverTime,
+                               aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
+        geom_line(size = 1.5) +
+        theme(legend.text = element_text(size = 14))
+
+      title1 <- if (identical(time(sim), P(sim)$.plotInitialTime))
+        "Average age (TSF) by FRI polygon" else ""
+
+      Plot(gg_tsfOverTime, title = title1, addTo = "ageOverTime")
+    }
 
     ## schedule future plots
     sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output", "otherPlots",
