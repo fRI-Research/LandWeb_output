@@ -122,7 +122,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
         geom_line(size = 1.5) +
         theme(legend.text = element_text(size = 14))
 
-      firstPlot <- identical(time(sim), P(sim)$.plotInitialTime + P(sim)$.plotInterval)
+      firstPlot <- isTRUE(time(sim) == P(sim)$.plotInitialTime + P(sim)$.plotInterval)
       title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
 
       Plot(gg_tsfOverTime, title = title1, addTo = "ageOverTime")
