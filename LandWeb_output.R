@@ -149,9 +149,9 @@ AllEvents <- function(sim) {
 }
 
 .inputObjects <- function(sim) {
-  cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
-  cPath <- cachePath(sim)
-  dPath <- asPath(dataPath(sim), 1)
+  cacheTags <- c(currentModule(sim), "function:.inputObjects")
+  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   if (!suppliedElsewhere("studyArea", sim)) {
     message("'studyArea' was not provided by user. Using a polygon in southwestern Alberta, Canada,")
