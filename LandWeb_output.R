@@ -220,7 +220,7 @@ AllEvents <- function(sim) {
                                studyArea = sim$studyAreaLarge,
                                sppEquiv = sim$sppEquiv,
                                knnNamesCol = "KNN",
-                               sppEquivCol = "LandWeb",
+                               sppEquivCol = P(sim)$sppEquivCol,
                                # thresh = 10,
                                url = extractURL("speciesLayers"),
                                cachePath = cachePath(sim),
