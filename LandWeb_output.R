@@ -15,7 +15,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
   reqdPkgs = list("data.table", "raster", "SpaDES.tools",
-                  #"PredictiveEcology/LandR@development",
+                  "PredictiveEcology/LandR@development",
                   "PredictiveEcology/pemisc@development"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
@@ -53,7 +53,7 @@ defineModule(sim, list(
                               "and should also contain a color for 'Mixed'"),
                  sourceURL = NA),
     expectsInput("sppEquiv", "data.table",
-                 desc = "table of species equivalencies. See pemisc::sppEquivalencies_CA.", ## TODO: use LandR
+                 desc = "table of species equivalencies. See LandR::sppEquivalencies_CA.",
                  sourceURL = ""),
     expectsInput("speciesLayers", "RasterStack",
                  desc = "biomass percentage raster layers by species in Canada species map",
@@ -199,7 +199,7 @@ AllEvents <- function(sim) {
   }
 
   if (!suppliedElsewhere("sppEquiv", sim)) {
-    data("sppEquivalencies_CA", package = "pemisc", envir = environment()) ## TODO: use LandR
+    data("sppEquivalencies_CA", package = "LandR", envir = environment())
     sim$sppEquiv <- as.data.table(sppEquivalencies_CA)
 
     ## By default, Abies_las is renamed to Abies_sp
