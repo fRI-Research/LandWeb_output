@@ -218,18 +218,19 @@ AllEvents <- function(sim) {
                                dPath = dPath,
                                rasterToMatch = sim$rasterToMatch,
                                studyArea = sim$studyAreaLarge,
-                               speciesList = sim$speciesList,
+                               sppEquiv = sim$sppEquiv,
+                               knnNamesCol = "KNN",
+                               sppEquivCol = "LandWeb",
                                # thresh = 10,
                                url = extractURL("speciesLayers"),
                                cachePath = cachePath(sim),
                                userTags = c(cacheTags, "speciesLayers"))
-
     #options(opts)
+
     writeRaster(speciesLayersList$speciesLayers,
                 file.path(outputPath(sim), "speciesLayers.grd"),
                 overwrite = TRUE)
     sim$speciesLayers <- speciesLayersList$speciesLayers
-    #sim$speciesList <- speciesLayersList$speciesList ## not used in this module
   }
 
   if (!suppliedElsewhere("standAgeMap", sim)) {
