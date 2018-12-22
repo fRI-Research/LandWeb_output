@@ -20,15 +20,17 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter("sppEquivCol", "character", "LandWeb", NA, NA,
-                    "The column in sim$specieEquivalency data.table to use as a naming convention"),
-    defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
+                    desc = "The column in sim$specieEquivalency data.table to use as a naming convention"),
+    defineParameter("summaryInterval", "numeric", 50, NA, NA,
+                    desc = "This describes summary interval for this module"),
     defineParameter("vegLeadingProportion", "numeric", 0.8, 0, 1,
                     desc = "a number that define whether a species is leading for a given pixel"),
     defineParameter(".plotInitialTime", "numeric", 0, NA, NA,
-                    "This describes the simulation time at which the first plot event should occur"),
+                    desc = "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA,
-                    "This describes the simulation time interval between plot events"),
-    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+                    desc = "This describes the simulation time interval between plot events"),
+    defineParameter(".useCache", "logical", FALSE, NA, NA,
+                    desc = "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
     expectsInput("cohortData", "data.table",
