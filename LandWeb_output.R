@@ -270,7 +270,7 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
     firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
 
-    Plot(gg_tsfOverTime, title = title1, addTo = "ageOverTime")
+    Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
   }
   return(tsfOverTime)
 }
