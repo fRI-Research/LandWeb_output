@@ -110,31 +110,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     }
   } else if (eventType == "otherPlots") {
     ## average age by FRI polygon
-    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$studyAreaReporting)
-    fris <- unique(na.omit(sim$fireReturnInterval[]))
-    names(fris) <- fris
-    tsfs <- vapply(unname(fris), function(x) {
-      ids <- which(sim$fireReturnInterval[] == x)
-      unname(mean(tsfMap[ids], na.rm = TRUE))
-    }, numeric(1))
-    polys <- sim$fireReturnInterval
-    tsfDF <- data.frame(time = as.numeric(times(sim)$current),
-                        meanAge = unname(tsfs),
-                        FRI = as.factor(unname(fris)))
-    mod$tsfOverTime <- rbind(mod$tsfOverTime, tsfDF)
-    mod$tsfOverTime <- mod$tsfOverTime[!is.na(mod$tsfOverTime$meanAge),]
-
-    if (length(unique(mod$tsfOverTime$time)) > 1) {
-      gg_tsfOverTime <- ggplot(mod$tsfOverTime,
-                               aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
-        geom_line(size = 1.5) +
-        theme(legend.text = element_text(size = 14))
-
-      firstPlot <- isTRUE(time(sim) == P(sim)$.plotInitialTime + P(sim)$.plotInterval)
-      title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
-
-      Plot(gg_tsfOverTime, title = title1, addTo = "ageOverTime")
-    }
+    mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting, sim$fireReturnInterval, sim$tsfMap,
+             time(sim), mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval)
 
     ## schedule future plots
     sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
@@ -252,4 +229,48 @@ AllEvents <- function(sim) {
   }
 
   return(invisible(sim))
+}
+
+ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, tsfMap,
+                     time, tsfOverTime, plotInitialTime, plotInterval) {
+  tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
+
+  ########################## Eliot: this is more efficient than its replacement in if (FALSE) block
+  tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
+  tsfDF <- tsfDF[, list(
+    time = as.numeric(time),
+    meanAge = mean(tsf, na.rm = TRUE)), by = FRI]
+  tsfDF[, FRI := factor(FRI)]
+
+  if (FALSE) { #
+
+    fris <- unique(na.omit(fireReturnInterval[]))
+    names(fris) <- fris
+    tsfs <- vapply(unname(fris), function(x) {
+      ids <- which(fireReturnInterval[] == x)
+      unname(mean(tsfMap[ids], na.rm = TRUE))
+    }, numeric(1))
+    tsfDF <- data.frame(time = as.numeric(times$current),
+                        meanAge = unname(tsfs),
+                        FRI = as.factor(unname(fris)))
+    tsfOverTime <- rbind(tsfOverTime, tsfDF)
+  }
+
+  ##########################
+  tsfOverTime <- rbindlist(list(tsfOverTime, tsfDF))
+  tsfOverTime <- tsfOverTime[!is.na(tsfOverTime$meanAge),]
+
+  if (length(unique(tsfOverTime$time)) > 1) {
+    tsfot <- tsfOverTime
+    gg_tsfOverTime <- ggplot(tsfot,
+                             aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
+      geom_line(size = 1.5) +
+      theme(legend.text = element_text(size = 14))
+
+    firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
+    title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
+
+    Plot(gg_tsfOverTime, title = title1, addTo = "ageOverTime")
+  }
+  return(tsfOverTime)
 }
