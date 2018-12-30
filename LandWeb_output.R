@@ -226,6 +226,7 @@ AllEvents <- function(sim) {
                              datatype = "INT2U",
                              filename2 = TRUE, overwrite = TRUE,
                              userTags = c("stable", currentModule(sim)))
+    sim$standAgeMap[] <- asInteger(sim$standAgeMap[])
   }
 
   return(invisible(sim))
