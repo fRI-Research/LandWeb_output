@@ -236,41 +236,22 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
                      time, tsfOverTime, plotInitialTime, plotInterval) {
   tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
 
-  ########################## Eliot: this is more efficient than its replacement in if (FALSE) block
   tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
   tsfDF <- tsfDF[, list(
     time = as.numeric(time),
     meanAge = mean(tsf, na.rm = TRUE)), by = FRI]
   tsfDF[, FRI := factor(FRI)]
 
-  if (FALSE) { #
-
-    fris <- unique(na.omit(fireReturnInterval[]))
-    names(fris) <- fris
-    tsfs <- vapply(unname(fris), function(x) {
-      ids <- which(fireReturnInterval[] == x)
-      unname(mean(tsfMap[ids], na.rm = TRUE))
-    }, numeric(1))
-    tsfDF <- data.frame(time = as.numeric(times$current),
-                        meanAge = unname(tsfs),
-                        FRI = as.factor(unname(fris)))
-    tsfOverTime <- rbind(tsfOverTime, tsfDF)
-  }
-
-  ##########################
   tsfOverTime <- rbindlist(list(tsfOverTime, tsfDF))
-  tsfOverTime <- tsfOverTime[!is.na(tsfOverTime$meanAge),]
+  tsfOverTime <- tsfOverTime[!is.na(tsfOverTime$meanAge), ]
 
   if (length(unique(tsfOverTime$time)) > 1) {
-    tsfot <- tsfOverTime
-    gg_tsfOverTime <- ggplot(tsfot,
-                             aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
+    gg_tsfOverTime <- ggplot(tsfOverTime, aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
       geom_line(size = 1.5) +
       theme(legend.text = element_text(size = 14))
 
     firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
-
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
   }
   return(tsfOverTime)
