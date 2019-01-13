@@ -91,12 +91,15 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
+    devCur <- dev.cur()
+    quickPlot::dev(2)
     plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% stack(),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
             colors = sim$sppColors,
             title = "Initial Types")
+    quickPlot::dev(devCur)
 
     ## plot initial age map
     ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% stack()
