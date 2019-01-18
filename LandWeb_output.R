@@ -2,27 +2,35 @@ defineModule(sim, list(
   name = "LandWeb_output",
   description = "Summarize the output for the LandWeb natural range of variation (NRV).",
   keywords = c("LandWeb", "NRV"),
-  authors = person("Yong", "Luo", email = "yong.luo@canada.ca", role = c("aut", "cre")),
+  authors = c(
+    person(c("Eliot", "J", "B"), "McIntire", email = "eliot.mcintire@canada.ca", role = c("aut", "cre")),
+    person("Yong", "Luo", email = "yluo1@lakeheadu.ca", role = "aut"),
+    person(c("Alex", "M."), "Chubaty", email = "achubaty@friresearch.ca", role = c("ctb"))
+  ),
   childModules = character(0),
-  version = numeric_version("1.3.2"),
+  version = list(SpaDES.core = "0.2.3.9009", LandWeb_output = numeric_version("1.3.2")),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
-  reqdPkgs = list("data.table", "raster", "SpaDES.tools", "PredictiveEcology/pemisc"),
+  reqdPkgs = list("data.table", "raster", "SpaDES.tools",
+                  "PredictiveEcology/LandR@development",
+                  "PredictiveEcology/pemisc@development"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter("sppEquivCol", "character", "LandWeb", NA, NA,
-                    "The column in sim$specieEquivalency data.table to use as a naming convention"),
-    defineParameter("summaryInterval", "numeric", 50, NA, NA, "This describes summary interval for this module"),
+                    desc = "The column in sim$specieEquivalency data.table to use as a naming convention"),
+    defineParameter("summaryInterval", "numeric", 50, NA, NA,
+                    desc = "This describes summary interval for this module"),
     defineParameter("vegLeadingProportion", "numeric", 0.8, 0, 1,
                     desc = "a number that define whether a species is leading for a given pixel"),
     defineParameter(".plotInitialTime", "numeric", 0, NA, NA,
-                    "This describes the simulation time at which the first plot event should occur"),
+                    desc = "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA,
-                    "This describes the simulation time interval between plot events"),
-    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+                    desc = "This describes the simulation time interval between plot events"),
+    defineParameter(".useCache", "logical", FALSE, NA, NA,
+                    desc = "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
     expectsInput("cohortData", "data.table",
@@ -47,7 +55,7 @@ defineModule(sim, list(
                               "and should also contain a color for 'Mixed'"),
                  sourceURL = NA),
     expectsInput("sppEquiv", "data.table",
-                 desc = "table of species equivalencies. See pemisc::sppEquivalencies_CA.",
+                 desc = "table of species equivalencies. See LandR::sppEquivalencies_CA.",
                  sourceURL = ""),
     expectsInput("speciesLayers", "RasterStack",
                  desc = "biomass percentage raster layers by species in Canada species map",
@@ -83,12 +91,15 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
+    devCur <- dev.cur()
+    quickPlot::dev(2)
     plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% stack(),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
             colors = sim$sppColors,
             title = "Initial Types")
+    quickPlot::dev(devCur)
 
     ## plot initial age map
     ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% stack()
@@ -102,35 +113,12 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     }
   } else if (eventType == "otherPlots") {
     ## average age by FRI polygon
-    tsfMap <- raster::mask(sim$rstTimeSinceFire, sim$studyAreaReporting)
-    fris <- unique(na.omit(sim$fireReturnInterval[]))
-    names(fris) <- fris
-    tsfs <- vapply(unname(fris), function(x) {
-      ids <- which(sim$fireReturnInterval[] == x)
-      unname(mean(tsfMap[ids], na.rm = TRUE))
-    }, numeric(1))
-    polys <- sim$fireReturnInterval
-    tsfDF <- data.frame(time = as.numeric(times(sim)$current),
-                        meanAge = unname(tsfs),
-                        FRI = as.factor(unname(fris)))
-    mod$tsfOverTime <- rbind(mod$tsfOverTime, tsfDF)
-    mod$tsfOverTime <- mod$tsfOverTime[!is.na(mod$tsfOverTime$meanAge),]
-
-    if (length(unique(mod$tsfOverTime$time)) > 1) {
-      gg_tsfOverTime <- ggplot(mod$tsfOverTime,
-                               aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
-        geom_line(size = 1.5) +
-        theme(legend.text = element_text(size = 14))
-
-      firstPlot <- identical(time(sim), P(sim)$.plotInitialTime + P(sim)$.plotInterval)
-      title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
-
-      Plot(gg_tsfOverTime, title = title1, addTo = "ageOverTime")
-    }
+    mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting, sim$fireReturnInterval, sim$tsfMap,
+             time(sim), mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval)
 
     ## schedule future plots
-    sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output", "otherPlots",
-                         eventPriority = 1)
+    sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
+                         "otherPlots", eventPriority = 1)
   } else {
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -149,9 +137,9 @@ AllEvents <- function(sim) {
 }
 
 .inputObjects <- function(sim) {
-  cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
-  cPath <- cachePath(sim)
-  dPath <- asPath(dataPath(sim), 1)
+  cacheTags <- c(currentModule(sim), "function:.inputObjects")
+  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   if (!suppliedElsewhere("studyArea", sim)) {
     message("'studyArea' was not provided by user. Using a polygon in southwestern Alberta, Canada,")
@@ -193,7 +181,7 @@ AllEvents <- function(sim) {
   }
 
   if (!suppliedElsewhere("sppEquiv", sim)) {
-    data("sppEquivalencies_CA", package = "pemisc", envir = environment())
+    data("sppEquivalencies_CA", package = "LandR", envir = environment())
     sim$sppEquiv <- as.data.table(sppEquivalencies_CA)
 
     ## By default, Abies_las is renamed to Abies_sp
@@ -202,8 +190,8 @@ AllEvents <- function(sim) {
     ## add default colors for species used in model
     if (!is.null(sim$sppColors))
       stop("If you provide sppColors, you MUST also provide sppEquiv")
-    sim$sppColors <- pemisc::sppColors(sim$sppEquiv, P(sim)$sppEquivCol,
-                                       newVals = "Mixed", palette = "Accent")
+    sim$sppColors <- sppColors(sim$sppEquiv, P(sim)$sppEquivCol,
+                               newVals = "Mixed", palette = "Accent")
   }
 
   if (!suppliedElsewhere("speciesLayers", sim)) {
@@ -212,18 +200,19 @@ AllEvents <- function(sim) {
                                dPath = dPath,
                                rasterToMatch = sim$rasterToMatch,
                                studyArea = sim$studyAreaLarge,
-                               speciesList = sim$speciesList,
+                               sppEquiv = sim$sppEquiv,
+                               knnNamesCol = "KNN",
+                               sppEquivCol = P(sim)$sppEquivCol,
                                # thresh = 10,
                                url = extractURL("speciesLayers"),
                                cachePath = cachePath(sim),
                                userTags = c(cacheTags, "speciesLayers"))
-
     #options(opts)
+
     writeRaster(speciesLayersList$speciesLayers,
                 file.path(outputPath(sim), "speciesLayers.grd"),
                 overwrite = TRUE)
     sim$speciesLayers <- speciesLayersList$speciesLayers
-    #sim$speciesList <- speciesLayersList$speciesList ## not used in this module
   }
 
   if (!suppliedElsewhere("standAgeMap", sim)) {
@@ -240,7 +229,33 @@ AllEvents <- function(sim) {
                              datatype = "INT2U",
                              filename2 = TRUE, overwrite = TRUE,
                              userTags = c("stable", currentModule(sim)))
+    sim$standAgeMap[] <- asInteger(sim$standAgeMap[])
   }
 
   return(invisible(sim))
+}
+
+ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, tsfMap,
+                     time, tsfOverTime, plotInitialTime, plotInterval) {
+  tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
+
+  tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
+  tsfDF <- tsfDF[, list(
+    time = as.numeric(time),
+    meanAge = mean(tsf, na.rm = TRUE)), by = FRI]
+  tsfDF[, FRI := factor(FRI)]
+
+  tsfOverTime <- rbindlist(list(tsfOverTime, tsfDF))
+  tsfOverTime <- tsfOverTime[!is.na(tsfOverTime$meanAge), ]
+
+  if (length(unique(tsfOverTime$time)) > 1) {
+    gg_tsfOverTime <- ggplot(tsfOverTime, aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
+      geom_line(size = 1.5) +
+      theme(legend.text = element_text(size = 14))
+
+    firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
+    title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
+    Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
+  }
+  return(tsfOverTime)
 }
