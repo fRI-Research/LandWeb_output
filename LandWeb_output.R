@@ -49,7 +49,7 @@ defineModule(sim, list(
     expectsInput("species", "data.table",
                  desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
-    expectsInput("sppColors", "character",
+    expectsInput("sppColorVect", "character",
                  desc = paste("A named vector of colors to use for plotting.",
                               "The names must be in sim$speciesEquivalency[[sim$sppEquivCol]],",
                               "and should also contain a color for 'Mixed'"),
@@ -97,7 +97,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
-            colors = sim$sppColors,
+            colors = sim$sppColorVect,
             title = "Initial Types")
     quickPlot::dev(devCur)
 
@@ -132,7 +132,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
                                         P(sim)$vegLeadingProportion,
-                                        colors = sim$sppColors)
+                                        colors = sim$sppColorVect)
   return(invisible(sim))
 }
 
@@ -188,9 +188,9 @@ AllEvents <- function(sim) {
     sim$sppEquiv[KNN == "Abie_Las", LandR := "Abie_sp"]
 
     ## add default colors for species used in model
-    if (!is.null(sim$sppColors))
-      stop("If you provide sppColors, you MUST also provide sppEquiv")
-    sim$sppColors <- sppColors(sim$sppEquiv, P(sim)$sppEquivCol,
+    if (!is.null(sim$sppColorVect))
+      stop("If you provide sppColorVect, you MUST also provide sppEquiv")
+    sim$sppColorVect <- sppColors(sim$sppEquiv, P(sim)$sppEquivCol,
                                newVals = "Mixed", palette = "Accent")
   }
 
