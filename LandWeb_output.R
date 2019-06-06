@@ -132,7 +132,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
                                         P(sim)$vegLeadingProportion,
-                                        colors = sim$sppColorVect)
+                                        colors = sim$sppColorVect,
+                                        unitTest = getOption("LandR.assertions"))
   return(invisible(sim))
 }
 
