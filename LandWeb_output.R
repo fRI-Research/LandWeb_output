@@ -258,8 +258,11 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
 
-    #if (current(sim)$eventTime == end(sim))
+
+    #if (current(sim)$eventTime == end(sim)) {
+    #  checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
     #  ggsave(file.path(outputPath(sim), "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
+    #}
   }
   return(tsfOverTime)
 }
