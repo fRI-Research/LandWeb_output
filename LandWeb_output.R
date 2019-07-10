@@ -133,7 +133,7 @@ AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
                                         P(sim)$vegLeadingProportion,
                                         colors = sim$sppColorVect,
-                                        unitTest = getOption("LandR.assertions"))
+                                        doAssertion = getOption("LandR.assertions", TRUE))
   return(invisible(sim))
 }
 
