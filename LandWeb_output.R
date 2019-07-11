@@ -18,7 +18,9 @@ defineModule(sim, list(
                   "PredictiveEcology/LandR@development",
                   "PredictiveEcology/pemisc@development"),
   parameters = rbind(
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
+    defineParameter("mixedType", "numeric", 2,
+                    desc = paste("How to define mixed stands: 1 for any species admixture;",
+                                 "2 for deciduous > conifer. See ?vegTypeMapGenerator.")),
     defineParameter("sppEquivCol", "character", "LandWeb", NA, NA,
                     desc = "The column in sim$specieEquivalency data.table to use as a naming convention"),
     defineParameter("summaryInterval", "numeric", 50, NA, NA,
@@ -131,7 +133,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
-                                        P(sim)$vegLeadingProportion,
+                                        P(sim)$vegLeadingProportion,  mixedType = P(sim)$mixedType,
+                                        sppEquiv = sim$sppEquiv, sppEquivCol = P(sim)$sppEquivCol,
                                         colors = sim$sppColorVect,
                                         doAssertion = getOption("LandR.assertions", TRUE))
   return(invisible(sim))
