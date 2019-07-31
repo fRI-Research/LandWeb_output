@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M."), "Chubaty", email = "achubaty@friresearch.ca", role = c("ctb"))
   ),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.3.9009", LandWeb_output = numeric_version("1.3.2")),
+  version = list(LandR = "0.0.2.9006", LandWeb_output = numeric_version("1.3.2"), SpaDES.core = "0.2.3.9009"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -18,7 +18,9 @@ defineModule(sim, list(
                   "PredictiveEcology/LandR@development",
                   "PredictiveEcology/pemisc@development"),
   parameters = rbind(
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
+    defineParameter("mixedType", "numeric", 2,
+                    desc = paste("How to define mixed stands: 1 for any species admixture;",
+                                 "2 for deciduous > conifer. See ?vegTypeMapGenerator.")),
     defineParameter("sppEquivCol", "character", "LandWeb", NA, NA,
                     desc = "The column in sim$specieEquivalency data.table to use as a naming convention"),
     defineParameter("summaryInterval", "numeric", 50, NA, NA,
@@ -87,7 +89,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
                          eventPriority = 1)
     sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "LandWeb_output", "otherPlots",
                          eventPriority = 1)
-    sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
+    # sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
@@ -131,8 +133,10 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 
 AllEvents <- function(sim) {
   sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
-                                        P(sim)$vegLeadingProportion,
-                                        colors = sim$sppColorVect)
+                                        P(sim)$vegLeadingProportion,  mixedType = P(sim)$mixedType,
+                                        sppEquiv = sim$sppEquiv, sppEquivCol = P(sim)$sppEquivCol,
+                                        colors = sim$sppColorVect,
+                                        doAssertion = getOption("LandR.assertions", TRUE))
   return(invisible(sim))
 }
 
@@ -256,6 +260,12 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
     firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
+
+
+    #if (current(sim)$eventTime == end(sim)) {
+    #  checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
+    #  ggsave(file.path(outputPath(sim), "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
+    #}
   }
   return(tsfOverTime)
 }
