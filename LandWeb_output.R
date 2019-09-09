@@ -107,16 +107,16 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% stack()
     Plot(ageMap, title = "Initial stand ages")
   } else if (eventType == "allEvents") {
-    if (time(sim) >= sim$summaryPeriod[1] &
-        time(sim) <= sim$summaryPeriod[2]) {
+    if (time(sim) >= sim$summaryPeriod[1] && time(sim) <= sim$summaryPeriod[2]) {
       sim <- AllEvents(sim)
       sim <- scheduleEvent(sim,  time(sim) + P(sim)$summaryInterval,
                            "LandWeb_output", "allEvents", eventPriority = 7.5)
     }
   } else if (eventType == "otherPlots") {
     ## average age by FRI polygon
-    mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting, sim$fireReturnInterval, sim$tsfMap,
-             time(sim), mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval)
+    mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
+                                sim$fireReturnInterval, sim$tsfMap, time(sim), mod$tsfOverTime,
+                                P(sim)$plotInitialTime, P(sim)$plotInterval)
 
     ## schedule future plots
     sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
@@ -260,7 +260,6 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
     firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
-
 
     #if (current(sim)$eventTime == end(sim)) {
     #  checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
