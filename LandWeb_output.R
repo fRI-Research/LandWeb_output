@@ -5,7 +5,7 @@ defineModule(sim, list(
   authors = c(
     person(c("Eliot", "J", "B"), "McIntire", email = "eliot.mcintire@canada.ca", role = c("aut", "cre")),
     person("Yong", "Luo", email = "yluo1@lakeheadu.ca", role = "aut"),
-    person(c("Alex", "M."), "Chubaty", email = "achubaty@friresearch.ca", role = c("ctb"))
+    person(c("Alex", "M."), "Chubaty", email = "achubaty@for-cast.ca", role = c("ctb"))
   ),
   childModules = character(0),
   version = list(LandR = "0.0.2.9006", LandWeb_output = numeric_version("1.3.2"), SpaDES.core = "0.2.3.9009"),
