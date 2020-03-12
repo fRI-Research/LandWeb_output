@@ -95,7 +95,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   } else if (eventType == "initialConditions") {
     devCur <- dev.cur()
     quickPlot::dev(2)
-    plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% stack(),
+    plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% raster::stack(),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
@@ -104,7 +104,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     quickPlot::dev(devCur)
 
     ## plot initial age map
-    ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% stack()
+    ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% raster::stack()
     Plot(ageMap, title = "Initial stand ages")
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] && time(sim) <= sim$summaryPeriod[2]) {
