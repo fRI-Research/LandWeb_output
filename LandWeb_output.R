@@ -15,7 +15,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
   reqdPkgs = list("data.table", "raster", "SpaDES.tools",
-                  "PredictiveEcology/LandR@development",
+                  "PredictiveEcology/LandR@development (>=0.0.3.9004)",
                   "PredictiveEcology/pemisc@development"),
   parameters = rbind(
     defineParameter("mixedType", "numeric", 2,
