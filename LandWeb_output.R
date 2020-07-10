@@ -15,7 +15,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
   reqdPkgs = list("data.table", "raster", "SpaDES.tools",
-                  "PredictiveEcology/LandR@development",
+                  "PredictiveEcology/LandR@development (>=0.0.3.9004)",
                   "PredictiveEcology/pemisc@development"),
   parameters = rbind(
     defineParameter("mixedType", "numeric", 2,
@@ -95,7 +95,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   } else if (eventType == "initialConditions") {
     devCur <- dev.cur()
     quickPlot::dev(2)
-    plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% stack(),
+    plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% raster::stack(),
             vegLeadingProportion = P(sim)$vegLeadingProportion,
             sppEquiv = sim$sppEquiv,
             sppEquivCol = P(sim)$sppEquivCol,
@@ -104,7 +104,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     quickPlot::dev(devCur)
 
     ## plot initial age map
-    ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% stack()
+    ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% raster::stack()
     Plot(ageMap, title = "Initial stand ages")
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] && time(sim) <= sim$summaryPeriod[2]) {
@@ -261,10 +261,10 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
 
-    #if (current(sim)$eventTime == end(sim)) {
-    #  checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
-    #  ggsave(file.path(outputPath(sim), "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
-    #}
+    if (current(sim)$eventTime == end(sim)) {
+      checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
+      ggsave(file.path(outputPath(sim), "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
+    }
   }
   return(tsfOverTime)
 }
