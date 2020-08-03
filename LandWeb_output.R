@@ -116,7 +116,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     ## average age by FRI polygon
     mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
                                 sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
-                                mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval)
+                                mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
+                                outputPath(sim))
 
     ## schedule future plots
     sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
@@ -240,7 +241,7 @@ AllEvents <- function(sim) {
 }
 
 ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, tsfMap,
-                     currTime, endTime, tsfOverTime, plotInitialTime, plotInterval) {
+                     currTime, endTime, tsfOverTime, plotInitialTime, plotInterval, outPath) {
   tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
 
   tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
@@ -262,8 +263,8 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
 
     if (currTime == endTime) {
-      checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
-      ggsave(file.path(outputPath(sim), "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
+      checkPath(file.path(outPath, "figures"), create = TRUE)
+      ggsave(file.path(outPath, "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
     }
   }
   return(tsfOverTime)
