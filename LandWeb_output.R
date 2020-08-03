@@ -115,8 +115,8 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   } else if (eventType == "otherPlots") {
     ## average age by FRI polygon
     mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
-                                sim$fireReturnInterval, sim$tsfMap, time(sim), mod$tsfOverTime,
-                                P(sim)$plotInitialTime, P(sim)$plotInterval)
+                                sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
+                                mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval)
 
     ## schedule future plots
     sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
@@ -240,12 +240,12 @@ AllEvents <- function(sim) {
 }
 
 ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, tsfMap,
-                     time, tsfOverTime, plotInitialTime, plotInterval) {
+                     currTime, endTime, tsfOverTime, plotInitialTime, plotInterval) {
   tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
 
   tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
   tsfDF <- tsfDF[, list(
-    time = as.numeric(time),
+    time = as.numeric(currTime),
     meanAge = mean(tsf, na.rm = TRUE)), by = FRI]
   tsfDF[, FRI := factor(FRI)]
 
@@ -253,15 +253,15 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, t
   tsfOverTime <- tsfOverTime[!is.na(tsfOverTime$meanAge), ]
 
   if (length(unique(tsfOverTime$time)) > 1) {
-    gg_tsfOverTime <- ggplot(tsfOverTime, aes(x = time, y = meanAge, col = FRI, ymin = 0)) +
+    gg_tsfOverTime <- ggplot(tsfOverTime, aes(x = currTime, y = meanAge, col = FRI, ymin = 0)) +
       geom_line(size = 1.5) +
       theme(legend.text = element_text(size = 14))
 
-    firstPlot <- isTRUE(time == plotInitialTime + plotInterval)
+    firstPlot <- isTRUE(currTime == plotInitialTime + plotInterval)
     title1 <- if (firstPlot) "Average age (TSF) by FRI polygon" else ""
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
 
-    if (current(sim)$eventTime == end(sim)) {
+    if (currTime == endTime) {
       checkPath(file.path(outputPath(sim), "figures"), create = TRUE)
       ggsave(file.path(outputPath(sim), "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
     }
