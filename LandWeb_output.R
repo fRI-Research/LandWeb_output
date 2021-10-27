@@ -34,7 +34,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     desc = "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
-  inputObjects = bind_rows(
+  inputObjects = bindrows(
     expectsInput("cohortData", "data.table",
                  desc = paste("age cohort-biomass table hooked to pixel group map by pixelGroupIndex at",
                               "succession time step, this is imported from forest succession module"),
@@ -78,7 +78,7 @@ defineModule(sim, list(
                  desc = "a numeric vector contains the start year and end year of summary",
                  sourceURL = "")
   ),
-  outputObjects = bind_rows(
+  outputObjects = bindrows(
     createsOutput("vegTypeMap", "Raster", desc = NA)
   )
 ))
