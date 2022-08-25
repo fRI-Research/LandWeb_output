@@ -3,7 +3,7 @@ defineModule(sim, list(
   description = "Summarize the output for the LandWeb natural range of variation (NRV).",
   keywords = c("LandWeb", "NRV"),
   authors = c(
-    person(c("Eliot", "J", "B"), "McIntire", email = "eliot.mcintire@canada.ca", role = c("aut", "cre")),
+    person(c("Eliot", "J", "B"), "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca", role = c("aut", "cre")),
     person("Yong", "Luo", email = "yluo1@lakeheadu.ca", role = "aut"),
     person(c("Alex", "M."), "Chubaty", email = "achubaty@for-cast.ca", role = c("ctb"))
   ),
