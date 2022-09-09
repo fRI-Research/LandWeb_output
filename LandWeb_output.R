@@ -27,7 +27,7 @@ defineModule(sim, list(
                     desc = "This describes summary interval for this module"),
     defineParameter("vegLeadingProportion", "numeric", 0.8, 0, 1,
                     desc = "a number that define whether a species is leading for a given pixel"),
-    defineParameter(".plotInitialTime", "numeric", 0, NA, NA,
+    defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
                     desc = "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA,
                     desc = "This describes the simulation time interval between plot events"),
