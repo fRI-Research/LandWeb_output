@@ -137,18 +137,20 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
                            "LandWeb_output", "allEvents", eventPriority = 7.5)
     }
   } else if (eventType == "otherPlots") {
-    ## average age by FRI polygon
-    mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
-                                sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
-                                mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
-                                outputPath(sim))
+    if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
+      ## average age by FRI polygon
+      mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
+                                  sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
+                                  mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
+                                  outputPath(sim))
 
-    ## schedule future plots
-    sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
-                         "otherPlots", eventPriority = 1)
-  } else {
-    warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
-                  "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+      ## schedule future plots
+      sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
+                           "otherPlots", eventPriority = 1)
+    } else {
+      warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
+                    "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+    }
   }
   return(invisible(sim))
 }
