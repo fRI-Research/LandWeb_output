@@ -147,10 +147,10 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
       ## schedule future plots
       sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
                            "otherPlots", eventPriority = 1)
-    } else {
+    }
+  } else {
       warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                     "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
-    }
   }
   return(invisible(sim))
 }
