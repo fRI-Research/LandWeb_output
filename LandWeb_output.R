@@ -8,14 +8,14 @@ defineModule(sim, list(
     person(c("Alex", "M."), "Chubaty", email = "achubaty@for-cast.ca", role = c("ctb"))
   ),
   childModules = character(0),
-  version = list(LandR = "0.0.2.9006", LandWeb_output = numeric_version("1.3.2"), SpaDES.core = "0.2.3.9009"),
+  version = list(LandWeb_output = numeric_version("1.3.3")),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
   reqdPkgs = list("data.table", "raster", "SpaDES.tools",
-                  "PredictiveEcology/LandR@development (>=0.0.3.9004)",
+                  "PredictiveEcology/LandR@development (>= 1.0.9.9001)",
                   "PredictiveEcology/pemisc@development"),
   parameters = rbind(
     defineParameter("mixedType", "numeric", 2,
@@ -27,38 +27,49 @@ defineModule(sim, list(
                     desc = "This describes summary interval for this module"),
     defineParameter("vegLeadingProportion", "numeric", 0.8, 0, 1,
                     desc = "a number that define whether a species is leading for a given pixel"),
-    defineParameter(".plotInitialTime", "numeric", 0, NA, NA,
+    defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
                     desc = "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA,
                     desc = "This describes the simulation time interval between plot events"),
+    defineParameter(".plots", "character", default = "object",
+                    desc = paste("Passed to `types` in `Plots` (see `?Plots`). There are a few plots that are made within this module, if set.",
+                                 "Note that plots (or their data) saving will ONLY occur at `end(sim)`.",
+                                 "If `NA`, plotting is turned off completely (this includes plot saving).")),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
-                    desc = "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+                    desc = paste("Should this entire module be run with caching activated?",
+                                 "This is generally intended for data-type modules,",
+                                 "where stochasticity and time are not relevant"))
   ),
   inputObjects = bindrows(
     expectsInput("cohortData", "data.table",
-                 desc = paste("age cohort-biomass table hooked to pixel group map by pixelGroupIndex at",
-                              "succession time step, this is imported from forest succession module"),
+                 desc = paste("age cohort-biomass table hooked to pixel group map by `pixelGroupIndex` at",
+                              "succession time step, this is imported from forest succession module."),
                  sourceURL = ""),
-    expectsInput("fireReturnInterval","Raster",
-                 desc = "A raster layer that is a factor raster, with at least 1 column called fireReturnInterval, representing the fire return interval in years"),
+    expectsInput("fireReturnInterval", "Raster",
+                 desc = paste("A raster layer that is a factor raster,",
+                              "with at least 1 column called fireReturnInterval,",
+                              "representing the fire return interval in years.")),
     expectsInput("pixelGroupMap", "RasterLayer",
                  desc = "updated community map at each succession time step",
-                 sourceURL = ""),
-    expectsInput("rasterToMatch", "RasterLayer",
-                 desc = "this raster contains two pieces of information: Full study area with fire return interval attribute", ## TODO: is this correct?
                  sourceURL = NA),
-    expectsInput("rstTimeSinceFire", "Raster", "a time since fire raster layer", NA),
+    expectsInput("rasterToMatch", "RasterLayer",
+                 desc = paste("this raster contains two pieces of information:",
+                              "Full study area with fire return interval attribute."), ## TODO: is this correct?
+                 sourceURL = NA),
+    expectsInput("rstTimeSinceFire", "Raster",
+                 desc = "a time since fire raster layer",
+                 sourceURL = NA),
     expectsInput("species", "data.table",
                  desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
     expectsInput("sppColorVect", "character",
                  desc = paste("A named vector of colors to use for plotting.",
-                              "The names must be in sim$speciesEquivalency[[sim$sppEquivCol]],",
+                              "The names must be in `sim$speciesEquivalency[[sim$sppEquivCol]]`,",
                               "and should also contain a color for 'Mixed'"),
                  sourceURL = NA),
     expectsInput("sppEquiv", "data.table",
-                 desc = "table of species equivalencies. See LandR::sppEquivalencies_CA.",
-                 sourceURL = ""),
+                 desc = "table of species equivalencies. See `LandR::sppEquivalencies_CA`.",
+                 sourceURL = NA),
     expectsInput("speciesLayers", "RasterStack",
                  desc = "biomass percentage raster layers by species in Canada species map",
                  sourceURL = "http://tree.pfc.forestry.ca/kNN-Species.tar"),
@@ -76,7 +87,7 @@ defineModule(sim, list(
                  sourceURL = NA),
     expectsInput("summaryPeriod", "numeric",
                  desc = "a numeric vector contains the start year and end year of summary",
-                 sourceURL = "")
+                 sourceURL = NA)
   ),
   outputObjects = bindrows(
     createsOutput("vegTypeMap", "Raster", desc = NA)
@@ -93,19 +104,32 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
                          eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
-    devCur <- dev.cur()
-    quickPlot::dev(2)
-    plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% raster::stack(),
-            vegLeadingProportion = P(sim)$vegLeadingProportion,
-            sppEquiv = sim$sppEquiv,
-            sppEquivCol = P(sim)$sppEquivCol,
-            colors = sim$sppColorVect,
-            title = "Initial Types")
-    quickPlot::dev(devCur)
+    if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
+      devCur <- dev.cur()
+      ## if current plot dev is too small, open a new one
+      if (is.null(dev.list())) {
+        dev(x = devCur + 1, height = 7, width = 14)
+        clearPlot()
+      } else {
+        if (dev.size()[2] < 14) {
+          dev(x = devCur + 1, height = 7, width = 14)
+          clearPlot()
+        }
+      }
 
-    ## plot initial age map
-    ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% raster::stack()
-    Plot(ageMap, title = "Initial stand ages")
+      plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% raster::stack(),
+              vegLeadingProportion = P(sim)$vegLeadingProportion,
+              sppEquiv = sim$sppEquiv,
+              sppEquivCol = P(sim)$sppEquivCol,
+              colors = sim$sppColorVect,
+              title = "Initial Types")
+
+      dev(devCur)
+
+      ## plot initial age map
+      ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% raster::stack()
+      Plot(ageMap, title = "Initial stand ages")
+    }
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] && time(sim) <= sim$summaryPeriod[2]) {
       sim <- AllEvents(sim)
@@ -113,18 +137,20 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
                            "LandWeb_output", "allEvents", eventPriority = 7.5)
     }
   } else if (eventType == "otherPlots") {
-    ## average age by FRI polygon
-    mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
-                                sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
-                                mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
-                                outputPath(sim))
+    if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
+      ## average age by FRI polygon
+      mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
+                                  sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
+                                  mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
+                                  outputPath(sim))
 
-    ## schedule future plots
-    sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
-                         "otherPlots", eventPriority = 1)
+      ## schedule future plots
+      sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
+                           "otherPlots", eventPriority = 1)
+    }
   } else {
-    warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
-                  "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+      warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
+                    "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   }
   return(invisible(sim))
 }
@@ -195,8 +221,7 @@ AllEvents <- function(sim) {
     ## add default colors for species used in model
     if (!is.null(sim$sppColorVect))
       stop("If you provide sppColorVect, you MUST also provide sppEquiv")
-    sim$sppColorVect <- sppColors(sim$sppEquiv, P(sim)$sppEquivCol,
-                               newVals = "Mixed", palette = "Accent")
+    sim$sppColorVect <- sppColors(sim$sppEquiv, P(sim)$sppEquivCol, newVals = "Mixed", palette = "Accent")
   }
 
   if (!suppliedElsewhere("speciesLayers", sim)) {
