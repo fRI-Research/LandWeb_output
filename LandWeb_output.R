@@ -59,8 +59,8 @@ defineModule(sim, list(
     expectsInput("rstTimeSinceFire", "Raster",
                  desc = "a time since fire raster layer",
                  sourceURL = NA),
-    expectsInput("speciesTable", "data.table",
-                 desc = "Columns: species, speciesCode, Indicating several features about species",
+    expectsInput("species", "data.table",
+                 desc = paste("a table that of invariant species traits with adjusted values"),
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
     expectsInput("sppColorVect", "character",
                  desc = paste("A named vector of colors to use for plotting.",
@@ -209,8 +209,8 @@ AllEvents <- function(sim) {
   if (!suppliedElsewhere("pixelGroupMap", sim))
     sim$pixelGroupMap <- raster()
 
-  if (!suppliedElsewhere("speciesTable", sim)) {
-    sim$speciesTable <- getSpeciesTable(dPath, cacheTags)
+  if (!suppliedElsewhere("species", sim)) {
+    sim$species <- getSpeciesTable(dPath, cacheTags)
   }
 
   if (!suppliedElsewhere("sppEquiv", sim)) {
