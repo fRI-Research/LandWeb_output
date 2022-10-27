@@ -59,7 +59,7 @@ defineModule(sim, list(
     expectsInput("rstTimeSinceFire", "Raster",
                  desc = "a time since fire raster layer",
                  sourceURL = NA),
-    expectsInput("species", "data.table",
+    expectsInput("speciesTable", "data.table",
                  desc = "Columns: species, speciesCode, Indicating several features about species",
                  sourceURL = "https://raw.githubusercontent.com/dcyr/LANDIS-II_IA_generalUseFiles/master/speciesTraits.csv"),
     expectsInput("sppColorVect", "character",
@@ -80,6 +80,12 @@ defineModule(sim, list(
                  desc = paste("multipolygon to use as the study area,",
                               "with attribute LTHFC describing the fire return interval.",
                               "Defaults to a square shapefile in Southwestern Alberta, Canada."),
+                 sourceURL = ""),
+    expectsInput("studyAreaLarge", "SpatialPolygonsDataFrame",
+                 desc = paste("Polygon to use as the parametrisation study area.",
+                              "Note that `studyAreaLarge` is only used for parameter estimation, and",
+                              "can be larger than the actual study area used for LandR simulations",
+                              "(e.g., larger than `studyArea` in LandR Biomass_core).")),
                  sourceURL = ""),
     expectsInput("studyAreaReporting", "SpatialPolygonsDataFrame",
                  desc = paste("multipolygon (typically smaller/unbuffered than studyArea) to use for plotting/reporting.",
@@ -140,7 +146,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
       ## average age by FRI polygon
       mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
-                                  sim$fireReturnInterval, sim$tsfMap, current(sim)$eventTime, end(sim),
+                                  sim$fireReturnInterval, current(sim)$eventTime, end(sim),
                                   mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
                                   outputPath(sim))
 
@@ -194,10 +200,6 @@ AllEvents <- function(sim) {
   if (!suppliedElsewhere("rasterToMatch", sim))
     stop("rasterToMatch must be supplied.")
 
-  if (!suppliedElsewhere("rasterToMatchReporting")) {
-    sim$rasterToMatchReporting <- sim$rasterToMatch
-  }
-
   if (!suppliedElsewhere("summaryPeriod", sim))
     sim$summaryPeriod <- c(1000, 1500)
 
@@ -207,13 +209,12 @@ AllEvents <- function(sim) {
   if (!suppliedElsewhere("pixelGroupMap", sim))
     sim$pixelGroupMap <- raster()
 
-  if (!suppliedElsewhere("species", sim)) {
+  if (!suppliedElsewhere("speciesTable", sim)) {
     sim$speciesTable <- getSpeciesTable(dPath, cacheTags)
   }
 
   if (!suppliedElsewhere("sppEquiv", sim)) {
-    data("sppEquivalencies_CA", package = "LandR", envir = environment())
-    sim$sppEquiv <- as.data.table(sppEquivalencies_CA)
+    sim$sppEquiv <- LandR::sppEquivalencies_CA
 
     ## By default, Abies_las is renamed to Abies_sp
     sim$sppEquiv[KNN == "Abie_Las", LandR := "Abie_sp"]
@@ -265,7 +266,7 @@ AllEvents <- function(sim) {
   return(invisible(sim))
 }
 
-ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, tsfMap,
+ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval,
                      currTime, endTime, tsfOverTime, plotInitialTime, plotInterval, outPath) {
   tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
 
