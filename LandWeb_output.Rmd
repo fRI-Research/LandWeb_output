@@ -1,19 +1,79 @@
 ---
-title: "LandWebOutput"
-author: "Eliot McIntire and Alex M Chubaty"
-date: "18 May 2018"
+title: "LandWeb_output Manual"
+subtitle: "v.`r SpaDES.core::moduleMetadata(module = 'LandWeb_output', path = '..')$version`"
+date: "Last updated: `r Sys.Date()`"
 output:
-  pdf_document: default
-editor_options: 
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    theme: sandstone
+    number_sections: false
+    df_print: paged
+    keep_md: yes
+editor_options:
   chunk_output_type: console
+  bibliography: citations/references_LandWeb_output.bib
+link-citations: true
+always_allow_html: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+<!-- the following are text references used in captions for LaTeX compatibility -->
+(ref:LandWeb-output) *LandWeb_output*
+
+```{r setup-LandWeb-output, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## change to eval = TRUE if all chunks are to be evaluated
+
+if (!require(dplyr)) {
+  install.packages("dplyr")
+  library(dplyr)
+}
 ```
 
-# Overview
+#### Authors:
 
-This module creates 3 raster layers, `seralStageMap`, `vegTypeMap`, and `oldBigPatch`.
-The module will save these layers to disk as scheduled by `summaryInterval`.
-These can then be used for post-processing.
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "LandWeb_output", path = '..')$authors), sep = ', ')`
+<!-- ideally separate authors with new lines, '\n' not working -->
+
+## Module Overview
+
+### Module summary
+
+This module saves LandR Biomass outputs for use with LandWeb post-processing.
+
+### Module inputs and parameters
+
+Table \@ref(tab:moduleInputs-LandWeb-output) shows the full list of module inputs.
+
+```{r moduleInputs-LandWeb-output, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_inputs <- SpaDES.core::moduleInputs("LandWeb_output", "..")
+knitr::kable(df_inputs,
+             caption = "List of (ref:LandWeb-output) input objects and their description.") %>%
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-LandWeb-output))
+
+
+```{r moduleParams-LandWeb-output, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_params <- SpaDES.core::moduleParams("LandWeb_output", "..")
+knitr::kable(df_params, caption = "List of (ref:LandWeb-output) parameters and their description.") %>%
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Module outputs
+
+Description of the module outputs (Table \@ref(tab:moduleOutputs-LandWeb-output)).
+
+```{r moduleOutputs-LandWeb-output, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_outputs <- SpaDES.core::moduleOutputs("LandWeb_output", "..")
+knitr::kable(df_outputs, caption = "List of (ref:LandWeb-output) outputs and their description.") %>%
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Links to other modules
+
+Originally developed as part of the [LandWeb](https://github.com/PredictiveEcology/LandWeb) project.
+
+### Getting help
+
+<https://github.com/fRI-Research/LandWeb_output/issues>
