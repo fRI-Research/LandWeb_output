@@ -8,15 +8,16 @@ defineModule(sim, list(
     person(c("Alex", "M."), "Chubaty", email = "achubaty@for-cast.ca", role = c("ctb"))
   ),
   childModules = character(0),
-  version = list(LandWeb_output = numeric_version("1.3.3")),
+  version = list(LandWeb_output = numeric_version("2.0.0")),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
-  reqdPkgs = list("data.table", "raster", "SpaDES.tools",
-                  "PredictiveEcology/LandR@development (>= 1.0.9.9001)",
-                  "PredictiveEcology/pemisc@development"),
+  reqdPkgs = list("data.table", "raster", "terra",
+                  "PredictiveEcology/LandR@development (>= 1.1.0.9063)",
+                  "PredictiveEcology/pemisc@development",
+                  "PredictiveEcology/SpaDES.tools@develompent (>= 2.0.0)"),
   parameters = rbind(
     defineParameter("mixedType", "numeric", 2,
                     desc = paste("How to define mixed stands: 1 for any species admixture;",
@@ -45,18 +46,18 @@ defineModule(sim, list(
                  desc = paste("age cohort-biomass table hooked to pixel group map by `pixelGroupIndex` at",
                               "succession time step, this is imported from forest succession module."),
                  sourceURL = NA),
-    expectsInput("fireReturnInterval", "Raster",
+    expectsInput("fireReturnInterval", "SpatRaster",
                  desc = paste("A raster layer that is a factor raster,",
                               "with at least 1 column called fireReturnInterval,",
                               "representing the fire return interval in years.")),
-    expectsInput("pixelGroupMap", "RasterLayer",
+    expectsInput("pixelGroupMap", "SpatRaster",
                  desc = "updated community map at each succession time step",
                  sourceURL = NA),
-    expectsInput("rasterToMatch", "RasterLayer",
+    expectsInput("rasterToMatch", "SpatRaster",
                  desc = paste("this raster contains two pieces of information:",
                               "Full study area with fire return interval attribute."), ## TODO: is this correct?
                  sourceURL = NA),
-    expectsInput("rstTimeSinceFire", "Raster",
+    expectsInput("rstTimeSinceFire", "SpatRaster",
                  desc = "a time since fire raster layer",
                  sourceURL = NA),
     expectsInput("species", "data.table",
@@ -70,10 +71,10 @@ defineModule(sim, list(
     expectsInput("sppEquiv", "data.table",
                  desc = "table of species equivalencies. See `LandR::sppEquivalencies_CA`.",
                  sourceURL = NA),
-    expectsInput("speciesLayers", "RasterStack",
+    expectsInput("speciesLayers", "SpatRaster",
                  desc = "biomass percentage raster layers by species in Canada species map",
                  sourceURL = "http://tree.pfc.forestry.ca/kNN-Species.tar"),
-    expectsInput("standAgeMap", "RasterLayer",
+    expectsInput("standAgeMap", "SpatRaster",
                  desc = "stand age map in study area, default is Canada national stand age map",
                  sourceURL = "http://tree.pfc.forestry.ca/kNN-StructureStandVolume.tar"),
     expectsInput("studyArea", "SpatialPolygonsDataFrame",
@@ -96,7 +97,7 @@ defineModule(sim, list(
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput("vegTypeMap", "Raster", desc = NA)
+    createsOutput("vegTypeMap", "SpatRaster", desc = NA)
   )
 ))
 
@@ -123,7 +124,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
         }
       }
 
-      plotVTM(speciesStack = raster::mask(sim$speciesLayers, sim$studyAreaReporting) %>% raster::stack(),
+      plotVTM(speciesStack = mask(sim$speciesLayers, sim$studyAreaReporting),
               vegLeadingProportion = P(sim)$vegLeadingProportion,
               sppEquiv = sim$sppEquiv,
               sppEquivCol = P(sim)$sppEquivCol,
@@ -133,7 +134,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
       dev(devCur)
 
       ## plot initial age map
-      ageMap <- raster::mask(sim$standAgeMap, sim$studyAreaReporting) %>% raster::stack()
+      ageMap <- mask(sim$standAgeMap, sim$studyAreaReporting)
       Plot(ageMap, title = "Initial stand ages")
     }
   } else if (eventType == "allEvents") {
@@ -253,7 +254,7 @@ AllEvents <- function(sim) {
                                                 "NFI_MODIS250m_kNN_Structure_Stand_Age_v0.zip")),
                              destinationPath = dPath,
                              url = extractURL("standAgeMap"),
-                             fun = "raster::raster",
+                             fun = "terra::rast",
                              studyArea = sim$studyAreaLarge,
                              rasterToMatch = sim$rasterToMatch,
                              method = "bilinear",
@@ -268,7 +269,7 @@ AllEvents <- function(sim) {
 
 ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval,
                      currTime, endTime, tsfOverTime, plotInitialTime, plotInterval, outPath) {
-  tsfMap <- raster::mask(rstTimeSinceFire, studyAreaReporting)
+  tsfMap <- mask(rstTimeSinceFire, studyAreaReporting)
 
   tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
   tsfDF <- tsfDF[, list(
