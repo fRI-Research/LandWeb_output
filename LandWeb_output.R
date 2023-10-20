@@ -97,7 +97,8 @@ defineModule(sim, list(
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput("vegTypeMap", "SpatRaster", desc = NA)
+    createsOutput("standAgeMap", "SpatRaster", desc = "stand ages derived from `corhortData`."),
+    createsOutput("vegTypeMap", "SpatRaster", desc = "map of leading tree species.")
   )
 ))
 
@@ -108,8 +109,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "LandWeb_output", "otherPlots",
                          eventPriority = 1)
     # sim <- scheduleEvent(sim, 0, "LandWeb_output", "allEvents", eventPriority = 7.5)
-    sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents",
-                         eventPriority = 7.5)
+    sim <- scheduleEvent(sim, sim$summaryPeriod[1], "LandWeb_output", "allEvents", eventPriority = 7.5)
   } else if (eventType == "initialConditions") {
     if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
       devCur <- dev.cur()
@@ -134,8 +134,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
       dev(devCur)
 
       ## plot initial age map
-      ageMap <- mask(sim$standAgeMap, sim$studyAreaReporting)
-      Plot(ageMap, title = "Initial stand ages")
+      Plot(sim$standAgeMap, title = "Initial stand ages")
     }
   } else if (eventType == "allEvents") {
     if (time(sim) >= sim$summaryPeriod[1] && time(sim) <= sim$summaryPeriod[2]) {
@@ -145,7 +144,7 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
     }
   } else if (eventType == "otherPlots") {
     if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
-      ## average age by FRI polygon
+      ## average TSF by FRI polygon
       mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
                                   sim$fireReturnInterval, current(sim)$eventTime, end(sim),
                                   mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
@@ -171,6 +170,11 @@ AllEvents <- function(sim) {
                                         sppEquiv = sim$sppEquiv, sppEquivCol = P(sim)$sppEquivCol,
                                         colors = sim$sppColorVect,
                                         doAssertion = getOption("LandR.assertions", TRUE))
+
+  sim$standAgeMap <- standAgeMapGenerator(sim$cohortData, sim$pixelGroupMap,
+                                          doAssertion = getOption("LandR.assertions", TRUE)) |>
+    mask(sim$studyAreaReporting)
+
   return(invisible(sim))
 }
 
