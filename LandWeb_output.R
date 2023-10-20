@@ -97,7 +97,7 @@ defineModule(sim, list(
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput("standAgeMap", "SpatRaster", desc = "stand ages derived from `corhortData`."),
+    createsOutput("standAgeMap", "SpatRaster", desc = "stand ages derived from `cohortData`."),
     createsOutput("vegTypeMap", "SpatRaster", desc = "map of leading tree species.")
   )
 ))
