@@ -171,7 +171,7 @@ AllEvents <- function(sim) {
                                         colors = sim$sppColorVect,
                                         doAssertion = getOption("LandR.assertions", TRUE))
 
-  sim$standAgeMap <- standAgeMapGenerator(sim$cohortData, sim$pixelGroupMap,
+  sim$standAgeMap <- standAgeMapGenerator(sim$cohortData, sim$pixelGroupMap, weight = "biomass",
                                           doAssertion = getOption("LandR.assertions", TRUE)) |>
     mask(sim$studyAreaReporting)
 
