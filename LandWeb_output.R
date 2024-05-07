@@ -14,6 +14,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandWeb_output.Rmd"),
+  loadOrder = list(after = c("Biomass_regeneration", "Biomass_regenerationPM")),
   reqdPkgs = list("data.table", "raster", "terra",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9072)",
                   "PredictiveEcology/pemisc@development",
