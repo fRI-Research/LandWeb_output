@@ -18,7 +18,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "raster", "terra",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9072)",
                   "PredictiveEcology/pemisc@development",
-                  "PredictiveEcology/SpaDES.tools@develompent (>= 2.0.0)"),
+                  "PredictiveEcology/SpaDES.tools@development (>= 2.0.0)"),
   parameters = rbind(
     defineParameter("mixedType", "numeric", 2,
                     desc = paste("How to define mixed stands: 1 for any species admixture;",
