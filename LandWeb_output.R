@@ -125,12 +125,14 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
         }
       }
 
-      plotVTM(speciesStack = mask(sim$speciesLayers, sim$studyAreaReporting),
-              vegLeadingProportion = P(sim)$vegLeadingProportion,
-              sppEquiv = sim$sppEquiv,
-              sppEquivCol = P(sim)$sppEquivCol,
-              colors = sim$sppColorVect,
-              title = "Initial Types")
+      plotVTM(
+        speciesStack = mask(sim$speciesLayers, sim$studyAreaReporting),
+        vegLeadingProportion = P(sim)$vegLeadingProportion,
+        sppEquiv = sim$sppEquiv,
+        sppEquivCol = P(sim)$sppEquivCol,
+        colors = sim$sppColorVect,
+        title = "Initial Types"
+      )
 
       dev(devCur)
 
@@ -146,10 +148,17 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
   } else if (eventType == "otherPlots") {
     if (anyPlotting(P(sim)$.plots) && ("screen" %in% P(sim)$.plots)) {
       ## average TSF by FRI polygon
-      mod$tsfOverTime <- ggPlotFn(sim$rstTimeSinceFire, sim$studyAreaReporting,
-                                  sim$fireReturnInterval, current(sim)$eventTime, end(sim),
-                                  mod$tsfOverTime, P(sim)$plotInitialTime, P(sim)$plotInterval,
-                                  outputPath(sim))
+      mod$tsfOverTime <- ggPlotFn(
+        sim$rstTimeSinceFire,
+        sim$studyAreaReporting,
+        sim$fireReturnInterval,
+        current(sim)$eventTime,
+        end(sim),
+        mod$tsfOverTime,
+        P(sim)$plotInitialTime,
+        P(sim)$plotInterval,
+        figurePath(sim)
+      )
 
       ## schedule future plots
       sim <- scheduleEvent(sim, times(sim)$current + P(sim)$.plotInterval, "LandWeb_output",
@@ -166,14 +175,23 @@ doEvent.LandWeb_output <- function(sim, eventTime, eventType, debug = FALSE) {
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 AllEvents <- function(sim) {
-  sim$vegTypeMap <- vegTypeMapGenerator(sim$cohortData, sim$pixelGroupMap,
-                                        P(sim)$vegLeadingProportion,  mixedType = P(sim)$mixedType,
-                                        sppEquiv = sim$sppEquiv, sppEquivCol = P(sim)$sppEquivCol,
-                                        colors = sim$sppColorVect,
-                                        doAssertion = getOption("LandR.assertions", TRUE))
+  sim$vegTypeMap <- vegTypeMapGenerator(
+    sim$cohortData,
+    sim$pixelGroupMap,
+    P(sim)$vegLeadingProportion,
+    mixedType = P(sim)$mixedType,
+    sppEquiv = sim$sppEquiv,
+    sppEquivCol = P(sim)$sppEquivCol,
+    colors = sim$sppColorVect,
+    doAssertion = getOption("LandR.assertions", TRUE)
+  )
 
-  sim$standAgeMap <- standAgeMapGenerator(sim$cohortData, sim$pixelGroupMap, weight = "biomass",
-                                          doAssertion = getOption("LandR.assertions", TRUE)) |>
+  sim$standAgeMap <- standAgeMapGenerator(
+    sim$cohortData,
+    sim$pixelGroupMap,
+    weight = "biomass",
+    doAssertion = getOption("LandR.assertions", TRUE)
+  ) |>
     mask(sim$studyAreaReporting)
 
   return(invisible(sim))
@@ -200,20 +218,25 @@ AllEvents <- function(sim) {
     sim$studyAreaLarge <- sim$studyArea
   }
 
-  if (!suppliedElsewhere("fireReturnInterval", sim))
+  if (!suppliedElsewhere("fireReturnInterval", sim)) {
     stop("fireReturnInterval map must be supplied.")
+  }
 
-  if (!suppliedElsewhere("rasterToMatch", sim))
+  if (!suppliedElsewhere("rasterToMatch", sim)) {
     stop("rasterToMatch must be supplied.")
+  }
 
-  if (!suppliedElsewhere("summaryPeriod", sim))
+  if (!suppliedElsewhere("summaryPeriod", sim)) {
     sim$summaryPeriod <- c(1000, 1500)
+  }
 
-  if (!suppliedElsewhere("cohortData", sim))
+  if (!suppliedElsewhere("cohortData", sim)) {
     sim$cohortData <- data.table()
+  }
 
-  if (!suppliedElsewhere("pixelGroupMap", sim))
+  if (!suppliedElsewhere("pixelGroupMap", sim)) {
     sim$pixelGroupMap <- raster()
+  }
 
   if (!suppliedElsewhere("species", sim)) {
     sim$species <- getSpeciesTable(dPath, cacheTags)
@@ -226,60 +249,74 @@ AllEvents <- function(sim) {
     sim$sppEquiv[KNN == "Abie_Las", LandR := "Abie_sp"]
 
     ## add default colors for species used in model
-    if (!is.null(sim$sppColorVect))
+    if (!is.null(sim$sppColorVect)) {
       stop("If you provide sppColorVect, you MUST also provide sppEquiv")
-    sim$sppColorVect <- sppColors(sim$sppEquiv, P(sim)$sppEquivCol, newVals = "Mixed", palette = "Accent")
+    }
+    sim$sppColorVect <- sppColors(
+      sim$sppEquiv,
+      P(sim)$sppEquivCol,
+      newVals = "Mixed",
+      palette = "Accent"
+    )
   }
 
   if (!suppliedElsewhere("speciesLayers", sim)) {
     #opts <- options(reproducible.useCache = "overwrite")
-    speciesLayersList <- Cache(loadkNNSpeciesLayers,
-                               dPath = dPath,
-                               rasterToMatch = sim$rasterToMatch,
-                               studyArea = sim$studyAreaLarge,
-                               sppEquiv = sim$sppEquiv,
-                               knnNamesCol = "KNN",
-                               sppEquivCol = P(sim)$sppEquivCol,
-                               # thresh = 10,
-                               url = extractURL("speciesLayers"),
-                               cachePath = cachePath(sim),
-                               userTags = c(cacheTags, "speciesLayers"))
+    speciesLayersList <- Cache(
+      loadkNNSpeciesLayers,
+      dPath = dPath,
+      rasterToMatch = sim$rasterToMatch,
+      studyArea = sim$studyAreaLarge,
+      sppEquiv = sim$sppEquiv,
+      knnNamesCol = "KNN",
+      sppEquivCol = P(sim)$sppEquivCol,
+      # thresh = 10,
+      url = extractURL("speciesLayers"),
+      cachePath = cachePath(sim),
+      userTags = c(cacheTags, "speciesLayers")
+    )
     #options(opts)
 
-    writeRaster(speciesLayersList$speciesLayers,
-                file.path(outputPath(sim), "speciesLayers.grd"),
-                overwrite = TRUE)
+    writeRaster(
+      speciesLayersList$speciesLayers,
+      file.path(outputPath(sim), "speciesLayers.grd"),
+      overwrite = TRUE
+    )
     sim$speciesLayers <- speciesLayersList$speciesLayers
   }
 
   if (!suppliedElsewhere("standAgeMap", sim)) {
-    sim$standAgeMap <- Cache(prepInputs, #notOlderThan = Sys.time(),
-                             targetFile = basename(standAgeMapFilename),
-                             archive = asPath(c("kNN-StructureStandVolume.tar",
-                                                "NFI_MODIS250m_kNN_Structure_Stand_Age_v0.zip")),
-                             destinationPath = dPath,
-                             url = extractURL("standAgeMap"),
-                             fun = "terra::rast",
-                             studyArea = sim$studyAreaLarge,
-                             rasterToMatch = sim$rasterToMatch,
-                             method = "bilinear",
-                             datatype = "INT2U",
-                             filename2 = TRUE, overwrite = TRUE,
-                             userTags = c("stable", currentModule(sim)))
+    sim$standAgeMap <- Cache(
+      prepInputs, #notOlderThan = Sys.time(),
+      targetFile = basename(standAgeMapFilename),
+      archive = asPath(c(
+        "kNN-StructureStandVolume.tar",
+        "NFI_MODIS250m_kNN_Structure_Stand_Age_v0.zip"
+      )),
+      destinationPath = dPath,
+      url = extractURL("standAgeMap"),
+      fun = "terra::rast",
+      studyArea = sim$studyAreaLarge,
+      rasterToMatch = sim$rasterToMatch,
+      method = "bilinear",
+      datatype = "INT2U",
+      filename2 = TRUE,
+      overwrite = TRUE,
+      userTags = c("stable", currentModule(sim))
+    )
     sim$standAgeMap[] <- asInteger(sim$standAgeMap[])
   }
 
   return(invisible(sim))
 }
 
-ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval,
-                     currTime, endTime, tsfOverTime, plotInitialTime, plotInterval, outPath) {
+## fmt: skip
+ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval, currTime, endTime,
+                     tsfOverTime, plotInitialTime, plotInterval, outPath) {
   tsfMap <- mask(rstTimeSinceFire, studyAreaReporting)
 
-  tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) %>% na.omit()
-  tsfDF <- tsfDF[, list(
-    time = as.numeric(currTime),
-    meanAge = mean(tsf, na.rm = TRUE)), by = FRI]
+  tsfDF <- data.table(tsf = tsfMap[], FRI = fireReturnInterval[]) |> na.omit()
+  tsfDF <- tsfDF[, list(time = as.numeric(currTime), meanAge = mean(tsf, na.rm = TRUE)), by = FRI]
   tsfDF[, FRI := factor(FRI)]
 
   tsfOverTime <- rbindlist(list(tsfOverTime, tsfDF))
@@ -295,8 +332,8 @@ ggPlotFn <- function(rstTimeSinceFire, studyAreaReporting, fireReturnInterval,
     Plot(gg_tsfOverTime, title = title1, new = TRUE, addTo = "ageOverTime")
 
     if (currTime == endTime) {
-      checkPath(file.path(outPath, "figures"), create = TRUE)
-      ggsave(file.path(outPath, "figures", "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
+      checkPath(outPath, create = TRUE)
+      ggsave(file.path(outPath, "average_age_(TSF)_by_FRI_polygon.png"), gg_tsfOverTime)
     }
   }
   return(tsfOverTime)
